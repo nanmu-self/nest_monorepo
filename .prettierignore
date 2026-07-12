@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+*.lock
+pnpm-lock.yaml
+
+# TS source-only packages must not contain emitted JS outputs.
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
