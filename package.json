@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --parallel --filter @short-link/server --filter @short-link/background dev",
+    "dev": "pnpm --parallel --filter @short-link/shared --filter @short-link/server --filter @short-link/background dev",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "prettier --write .",

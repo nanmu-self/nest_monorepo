@@ -3,10 +3,28 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js"
     }
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.build.json",
+    "dev": "tsup --watch",
+    "typecheck": "tsc -b",
+    "clean": "rm -rf dist .tsbuildinfo node_modules/.tmp"
+  },
+  "dependencies": {
+    "alova": "^3.5.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5"
   }
 }
