@@ -8,109 +8,12 @@ datasource db {
   // Prisma 7 通过 prisma.config.ts 动态注入 URL，无需在此声明
 }
 
-/// 管理员表
-model admins {
-  id            Int       @id @default(autoincrement())
-  username      String    @unique @db.VarChar(32)
+/// 用户表（基础模板，按业务需要自行扩展字段）
+model users {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique @db.VarChar(128)
   /// bcrypt 加密后的密码
-  password_hash String    @db.VarChar(255)
-  nickname      String?   @db.VarChar(32)
-  /// 角色：admin / super_admin
-  role          String    @default("admin") @db.VarChar(32)
-  status        Int       @default(1) @db.SmallInt
-  last_login_at DateTime? @db.Timestamptz(6)
-  last_login_ip String?   @db.VarChar(64)
-  created_at    DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime  @default(now()) @db.Timestamptz(6)
-}
-
-/// API 授权 Key 表
-model api_keys {
-  id           Int       @id @default(autoincrement())
-  api_id       String    @unique @default(dbgenerated("(gen_random_uuid())::text")) @db.VarChar(32)
-  /// 备注名
-  user         String    @db.VarChar(32)
-  key          String    @unique @db.VarChar(64)
-  expires_at   DateTime? @db.Timestamptz(6)
-  status       Int       @default(1) @db.SmallInt
-  /// IP 白名单（多个 IP 用逗号分隔）
-  whitelist_ip String?   @db.VarChar(255)
-  last_used_at DateTime? @db.Timestamptz(6)
-  call_count   BigInt    @default(0)
-  created_at   DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
-
-  @@index([key], map: "idx_api_keys_key")
-  @@index([status], map: "idx_api_keys_status")
-}
-
-/// 域名表（入口/防封）
-model domains {
-  id         Int      @id @default(autoincrement())
-  domain_id  String   @unique @default(dbgenerated("(gen_random_uuid())::text")) @db.VarChar(32)
-  domain     String   @unique
-  /// 1=入口域名 2=防封域名
-  type       Int      @default(1) @db.SmallInt
-  enabled    Boolean  @default(true)
-  remark     String?  @db.VarChar(128)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  updated_at DateTime @default(now()) @db.Timestamptz(6)
-
-  @@index([type], map: "idx_domains_type")
-}
-
-/// 短链接主表
-model short_links {
-  id                BigInt       @id @default(autoincrement())
-  short_id          String       @unique @default(dbgenerated("(gen_random_uuid())::text")) @db.VarChar(32)
-  /// 短码（自增 ID Base62 编码）
-  code              String       @unique @default("") @db.VarChar(32)
-  original_url      String
-  title             String?      @db.VarChar(64)
-  /// 设备限制：1=不限 2=微信 3=手机浏览器 4=PC 5=Android 6=iOS
-  device_type       String       @default("1") @db.VarChar(32)
-  expires_at        DateTime?    @db.Timestamptz(6)
-  /// 跳转类型：1=直跳 2=防封跳
-  redirect_type     Int          @default(1) @db.SmallInt
-  /// 累计访问量（Redis 实时计数，每日异步落库）
-  pv                BigInt       @default(0)
-  /// 状态：1=启用 2=停用
-  status            Int          @default(1) @db.SmallInt
-  entry_domain      String
-  anti_block_domain String?
-  created_at        DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime     @default(now()) @db.Timestamptz(6)
-  visit_logs        visit_logs[]
-
-  @@index([code], map: "idx_short_links_code")
-  @@index([created_at(sort: Desc)], map: "idx_short_links_created_at")
-  @@index([expires_at], map: "idx_short_links_expires_at")
-  @@index([status], map: "idx_short_links_status")
-}
-
-/// API 调用统计：stat_date=null 为总计，否则为某日统计
-model tongji {
-  id             Int       @id @default(autoincrement())
-  api_call_count BigInt    @default(0)
-  stat_date      DateTime? @unique @db.Date
-  created_at     DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime  @default(now()) @db.Timestamptz(6)
-}
-
-/// 访问日志（异步批量写入，不在跳转主路径同步写）
-model visit_logs {
-  id            BigInt      @id @default(autoincrement())
-  short_link_id BigInt
-  ip            String      @db.VarChar(64)
-  ua            String
-  device        String?     @db.VarChar(32)
-  referer       String?
-  country       String?     @db.VarChar(32)
-  province      String?     @db.VarChar(32)
-  city          String?     @db.VarChar(32)
-  visited_at    DateTime    @default(now()) @db.Timestamptz(6)
-  short_links   short_links @relation(fields: [short_link_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_visit_logs_short_link")
-
-  @@index([short_link_id, visited_at(sort: Desc)], map: "idx_visit_logs_link_time")
-  @@index([visited_at], map: "idx_visit_logs_visited_at")
+  password_hash String   @db.VarChar(255)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
 }
