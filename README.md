@@ -34,12 +34,12 @@ nest_monorepo/
 │   │   ├── prisma/
 │   │   │   └── schema.prisma    # 数据库模型定义
 │   │   ├── src/
-│   │   │   ├── admins/          # 示例业务模块（controller / service / module）
+│   │   │   ├── users/           # 示例业务模块（controller / service / module）
 │   │   │   ├── prisma/          # PrismaClient 封装（@Global 模块）
 │   │   │   ├── app.module.ts    # 根模块
 │   │   │   ├── bootstrap.ts     # 应用配置（全局前缀 / 版本控制 / CORS / 管道）
 │   │   │   └── main.ts          # 入口
-│   └── background/              # React 前端（管理后台）
+│   └── web-admin/               # React 前端（管理后台）
 │       ├── src/
 │       │   ├── App.tsx
 │       │   └── main.tsx
@@ -68,7 +68,7 @@ pnpm install
 
 # 3. 配置环境变量
 cp apps/server/.env.example apps/server/.env
-cp apps/background/.env.example apps/background/.env
+cp apps/web-admin/.env.example apps/web-admin/.env
 # 编辑 .env 文件，填入你的数据库连接串等
 
 # 4. 初始化数据库
@@ -84,7 +84,7 @@ pnpm dev
 
 - 后端 API：`http://localhost:3000/api/v1`（同时支持 `/api/v2`）
 - 前端页面：`http://localhost:5173`
-- 前端通过 Vite proxy 代理 `/api` → 后端，无需处理跨域
+- 前端通过 Vite proxy 代理 `/api` -> 后端，无需处理跨域
 
 ## 可用脚本
 
@@ -119,7 +119,7 @@ pnpm dev
 | `NODE_ENV` | 运行环境 | `development` |
 | `CORS_ORIGIN` | CORS 允许来源（逗号分隔） | `true`（允许所有） |
 
-### `apps/background/.env`
+### `apps/web-admin/.env`
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
@@ -169,7 +169,7 @@ pnpm db:pull
 
 ### 代码规范
 
-- **oxlint**：极速 linter，规则配置在 `.oxlintrc.json`，针对 `apps/background` 自动启用 React 插件
+- **oxlint**：极速 linter，规则配置在 `.oxlintrc.json`，针对 `apps/web-admin` 自动启用 React 插件
 - **Prettier**：统一格式化，配置在 `.prettierrc.json`
 - **EditorConfig**：跨编辑器基础缩进/换行约定
 
