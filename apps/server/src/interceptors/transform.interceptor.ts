@@ -1,0 +1,34 @@
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import { Observable, map } from 'rxjs';
+import type { ApiResponse } from '@short-link/shared';
+
+/**
+ * 统一成功响应封套拦截器。
+ *
+ * 把所有 controller 返回值包装成 `{ code: 0, data: T, message: 'ok' }`，
+ * 与前端 createHttp 的 onSuccess 解封套逻辑配合。
+ *
+ * 注意：
+ *   - 错误响应（HttpException 抛出）不走此拦截器，保持 NestJS 默认 `{ statusCode, message, error }`
+ *   - 若返回值已是 ApiResponse 形状（含 code/data/message），不再二次包装
+ */
+@Injectable()
+export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
+  intercept(_context: ExecutionContext, next: CallHandler<T>): Observable<ApiResponse<T>> {
+    return next.handle().pipe(
+      map((data) => {
+        // 已是封套形状则原样返回，避免二次包装
+        if (
+          data &&
+          typeof data === 'object' &&
+          'code' in data &&
+          'data' in data &&
+          'message' in data
+        ) {
+          return data as ApiResponse<T>;
+        }
+        return { code: 0, data, message: 'ok' };
+      }),
+    );
+  }
+}

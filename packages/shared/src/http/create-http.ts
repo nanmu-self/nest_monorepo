@@ -3,6 +3,7 @@ import adapterFetch from 'alova/fetch';
 import type { StatesExport } from 'alova';
 
 import { HttpError } from '../errors';
+import type { ApiResponse } from '../contracts';
 import type { CreateHttpOptions } from './types';
 
 /**
@@ -15,6 +16,19 @@ function extractErrorMessage(body: unknown): string | undefined {
     if (typeof msg === 'string') return msg;
   }
   return undefined;
+}
+
+/**
+ * 判断响应体是否为标准封套 `{ code, data, message }`。
+ */
+function isApiResponse(body: unknown): body is ApiResponse {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'code' in body &&
+    'data' in body &&
+    'message' in body
+  );
 }
 
 /**
@@ -79,8 +93,22 @@ export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
           throw error;
         }
 
-        // 2xx：返回解析后的 JSON 数据
-        return response.json();
+        // 2xx：解析 JSON，解封套 { code: 0, data: T, message: 'ok' }
+        const body = await response.json();
+
+        // 标准封套：code === 0 取 data；code 非 0 视为业务错误
+        if (isApiResponse(body)) {
+          if (body.code === 0) {
+            return body.data;
+          }
+          const message = body.message || 'Business Error';
+          const error = new HttpError(response.status, message, body);
+          options.onError?.(error);
+          throw error;
+        }
+
+        // 非标准封套（如健康检查、第三方代理）：原样返回
+        return body;
       },
 
       onError(error) {
