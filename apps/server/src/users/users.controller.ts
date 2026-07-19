@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import type { UserDTO } from '@short-link/shared';
 
 import { UsersService } from './users.service';
 
@@ -7,7 +8,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async findAll() {
+  async findAll(): Promise<UserDTO[]> {
     return this.usersService.findAll();
   }
 }

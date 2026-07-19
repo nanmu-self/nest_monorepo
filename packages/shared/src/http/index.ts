@@ -5,5 +5,5 @@
  * 被间接拉入 alova / React 相关依赖。
  */
 export { createHttp } from './create-http';
-export type { CreateHttpOptions, StatesHook } from './types';
+export type { CreateHttpOptions, StatesHook, StatesExport } from './types';
 export { HttpError } from '../errors';

@@ -1,5 +1,6 @@
 import { createAlova } from 'alova';
 import adapterFetch from 'alova/fetch';
+import type { StatesExport } from 'alova';
 
 import { HttpError } from '../errors';
 import type { CreateHttpOptions } from './types';
@@ -38,7 +39,9 @@ function extractErrorMessage(body: unknown): string | undefined {
  * });
  * ```
  */
-export function createHttp(options: CreateHttpOptions) {
+export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
+  options: CreateHttpOptions<SE>,
+) {
   return createAlova({
     baseURL: options.baseURL,
     timeout: options.timeout ?? 30_000,

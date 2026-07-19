@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import type { UserDTO } from '@short-link/shared';
 import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    // 排除 password_hash,避免敏感字段泄漏
-    return this.prisma.users.findMany({
+  async findAll(): Promise<UserDTO[]> {
+    const users = await this.prisma.users.findMany({
       select: {
         id: true,
         email: true,
@@ -15,5 +15,12 @@ export class UsersService {
         updated_at: true,
       },
     });
+    // Prisma 返回 Date，API 契约约定 ISO string（JSON wire format）
+    return users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      created_at: u.created_at.toISOString(),
+      updated_at: u.updated_at.toISOString(),
+    }));
   }
 }

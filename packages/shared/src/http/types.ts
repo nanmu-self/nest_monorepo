@@ -1,14 +1,14 @@
-import type { StatesHook } from 'alova';
+import type { StatesExport, StatesHook } from 'alova';
 import type { HttpError } from '../errors';
 
 /**
  * HTTP 模块选项类型（不含运行时依赖）。
  */
 
-export type { StatesHook };
+export type { StatesHook, StatesExport };
 
 /** 创建 HTTP 实例的配置 */
-export interface CreateHttpOptions {
+export interface CreateHttpOptions<SE extends StatesExport<any> = StatesExport<any>> {
   /** API 基础路径，如 `/api/v1` */
   baseURL: string;
   /**
@@ -19,7 +19,7 @@ export interface CreateHttpOptions {
    *
    * 由调用方注入，避免 shared 包硬编码某个前端框架。
    */
-  statesHook: StatesHook<any>;
+  statesHook: StatesHook<SE>;
   /** 请求超时（毫秒），默认 30000 */
   timeout?: number;
   /** 获取认证 token，返回值会注入到 Authorization: Bearer <token> 头 */
