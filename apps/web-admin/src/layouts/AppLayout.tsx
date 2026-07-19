@@ -17,7 +17,7 @@ export default function AppLayout() {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <div className="app-brand">短链管理</div>
+        <div className="app-brand">后台管理</div>
         <nav>
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
             仪表盘

@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/shared" },
+    { "path": "./packages/config-unocss" },
     { "path": "./apps/server" },
     { "path": "./apps/web-admin" }
   ]
