@@ -59,6 +59,11 @@ export function createUnoConfig(overrides: UserConfig = {}): UserConfig {
       presetIcons({
         scale: 1.2,
         warn: true,
+        // 图标默认样式：inline-block + 垂直居中，避免在文本旁错位
+        extraProperties: {
+          display: 'inline-block',
+          'vertical-align': 'middle',
+        },
       }),
     ],
     transformers: [transformerDirectives(), transformerVariantGroup()],

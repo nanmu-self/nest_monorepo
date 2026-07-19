@@ -12,7 +12,7 @@
     }
   },
   "peerDependencies": {
-    "unocss": "66.7.5"
+    "unocss": "^66.7.5"
   },
   "devDependencies": {
     "unocss": "66.7.5"
