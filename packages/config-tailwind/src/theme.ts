@@ -1,9 +1,10 @@
 /**
  * 设计 token：定义品牌色阶、功能色、字体、圆角等基础视觉变量
- * 消费方通过 createUnoConfig() 自动应用，也可单独 import 引用
+ * 消费方通过 @import '@short-link/config-tailwind/styles.css' 自动应用，
+ * 也可单独 import 引用 JS 常量
  */
 
-export interface UnoTheme {
+export interface TailwindTheme {
   /** 品牌色阶，50~900，主色为 brand-500 */
   colors: {
     brand: Record<
@@ -30,7 +31,7 @@ export interface UnoTheme {
   };
 }
 
-export const theme: UnoTheme = {
+export const theme: TailwindTheme = {
   colors: {
     // 品牌主色：蓝色族，brand-500 = #3b82f6（与 Tailwind blue 一致，方便记忆）
     brand: {

@@ -1,0 +1,111 @@
+/**
+ * shadcn/ui 语义化设计 token
+ *
+ * 消费方通过 @import '@short-link/ui/styles.css' 引入，
+ * 生成 bg-background / text-foreground / bg-primary ... 等工具类。
+ *
+ * 色值与 web-admin 现有 :root 变量保持一致，确保 shadcn 组件与原有 UI 视觉统一。
+ * --accent 在 shadcn 语义中是「hover 背景」，与原有 --accent（品牌操作色）含义不同，
+ * 因此原有 CSS 已将 --accent 重命名为 --action，避免冲突。
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+
+  /* 基础色 */
+  --background: #f6f7fb;
+  --foreground: #4a5162;
+
+  /* 卡片 / 弹层 */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  /* 主色：indigo-500，匹配原有 --action */
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+
+  /* 次级 */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+
+  /* 静默文本 / 背景 */
+  --muted: #f1f5f9;
+  --muted-foreground: #94a3b8;
+
+  /* 强调背景（hover 等，shadcn 语义） */
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+
+  /* 危险色 */
+  --destructive: #ef4444;
+
+  /* 边框 / 输入 / 焦点环 */
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #6366f1;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+
+  --primary: #818cf8;
+  --primary-foreground: #0f172a;
+
+  --secondary: #334155;
+  --secondary-foreground: #f8fafc;
+
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+
+  --accent: #334155;
+  --accent-foreground: #f8fafc;
+
+  --destructive: #f87171;
+
+  --border: #334155;
+  --input: #334155;
+  --ring: #818cf8;
+}
+
+/* 将语义变量映射为 Tailwind 工具类：bg-background / text-primary / border-border ... */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}

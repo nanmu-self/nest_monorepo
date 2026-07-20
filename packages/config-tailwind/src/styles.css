@@ -1,0 +1,59 @@
+/**
+ * 共享 Tailwind 设计 token + 通用组件类
+ *
+ * 消费方通过 @import '@short-link/config-tailwind/styles.css' 引入，
+ * 可在自身 CSS 中追加同名 @layer components 覆盖（后定义者胜出）。
+ */
+
+/* ---------- 设计 token：生成 Tailwind 工具类 ---------- */
+@theme {
+  /* 品牌色阶：bg-brand-500 / text-brand-500 / from-brand-400 ... */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  /* 功能色 */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* 字体族：font-sans / font-mono */
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+
+  /* 圆角由 @short-link/ui 的 shadcn 语义 token 统一提供（--radius-*） */
+}
+
+/* ---------- 通用组件类：跨业务复用的原子化样式组合 ---------- */
+@layer components {
+  /* 布局类：水平居中 / 两端对齐 / 垂直居中 */
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
+  .flex-col-center {
+    @apply flex flex-col items-center justify-center;
+  }
+
+  /* 按钮类：主按钮 / 幽灵按钮 */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-md bg-brand-500 text-white hover:bg-brand-600 transition-colors;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-md bg-transparent text-gray-700 hover:bg-gray-100 transition-colors;
+  }
+
+  /* 卡片 */
+  .card {
+    @apply bg-white border border-gray-200 rounded-lg p-4 shadow-sm;
+  }
+}

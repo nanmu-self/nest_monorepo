@@ -1,3 +1,38 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@short-link/config-tailwind/styles.css';
+@import '@short-link/ui/styles.css';
+
+/* ---------- web-admin 专属设计 token ---------- */
+@theme {
+  /* 自定义缓动曲线：内置 ease/ease-out 不够劲，统一提到 theme 复用
+     选用规则：入场/出场 -> out-strong；屏内位移/形变 -> in-out-strong；抽屉 -> drawer */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ---------- web-admin 专属组件类 ---------- */
+@layer components {
+  /* 表格单元格：紧凑内边距 + 次级文本色 */
+  .admin-table-cell {
+    @apply px-4 py-2 text-sm text-gray-700;
+  }
+  /* 页面标题：大字号 + 主文本色 + 底部留白 */
+  .admin-page-header {
+    @apply text-xl font-semibold text-gray-900 mb-4;
+  }
+
+  /* 覆盖共享包的同名 shortcut，追加按压反馈与自定义缓动
+     共享包不动（其他 app 可能依赖原行为），web-admin 内自带手感 */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-md bg-brand-500 text-white hover:bg-brand-600 transition-[transform,background-color] duration-160 ease-out-strong active:scale-[0.97];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-md bg-transparent text-gray-700 hover:bg-gray-100 transition-[transform,background-color,color] duration-160 ease-out-strong active:scale-[0.97];
+  }
+}
+
 :root {
   --text: #4a5162;
   --text-h: #0f172a;
@@ -5,14 +40,17 @@
   --bg: #f6f7fb;
   --panel: #ffffff;
   --border: #e2e8f0;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
+  --action: #6366f1;
+  --action-hover: #4f46e5;
   --danger: #ef4444;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* 动效时长 token：UI 硬上限 300ms */
+  --duration-press: 160ms;
+  --duration-tip: 160ms;
+  --duration-menu: 200ms;
+  --duration-modal: 280ms;
 
-  font: 14px/1.5 var(--sans);
+  font: 14px/1.5 var(--font-sans);
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -39,11 +77,13 @@ h1 {
 }
 
 a {
-  color: var(--accent);
+  color: var(--action);
   text-decoration: none;
+  /* 颜色变化走 ease，不用强缓动 */
+  transition: color var(--duration-press) ease;
 }
 a:hover {
-  color: var(--accent-hover);
+  color: var(--action-hover);
 }
 
 button {
@@ -52,12 +92,20 @@ button {
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
-  background: var(--accent);
+  background: var(--action);
   color: #fff;
-  transition: background 0.15s;
+  /* 显式列出属性：hover 走 ease，按压 transform 走 out-strong */
+  transition:
+    background-color var(--duration-press) ease,
+    color var(--duration-press) ease,
+    transform var(--duration-press) var(--ease-out-strong);
 }
 button:hover {
-  background: var(--accent-hover);
+  background: var(--action-hover);
+}
+/* 按压反馈：任何可按压元素都必须告诉用户“我听到了” */
+button:active {
+  transform: scale(0.97);
 }
 button:disabled {
   opacity: 0.5;
@@ -67,7 +115,9 @@ button:disabled {
 /* ---------- AppLayout ---------- */
 .app-shell {
   display: flex;
-  min-height: 100svh;
+  /* 锁定到视口高度：避免内容撑高整个外壳，导致左侧菜单跟着滚动 */
+  height: 100svh;
+  overflow: hidden;
 }
 .app-sidebar {
   width: 220px;
@@ -94,19 +144,26 @@ button:disabled {
   padding: 8px 12px;
   border-radius: 6px;
   color: var(--text);
+  /* 高频导航：只做最小颜色过渡，避免瞬切突兀 */
+  transition:
+    background-color var(--duration-press) var(--ease-out-strong),
+    color var(--duration-press) var(--ease-out-strong);
 }
 .app-sidebar nav a:hover {
   background: rgba(99, 102, 241, 0.08);
 }
 .app-sidebar nav a.active {
   background: rgba(99, 102, 241, 0.12);
-  color: var(--accent);
+  color: var(--action);
   font-weight: 500;
 }
 .app-body {
   flex: 1;
+  /* min-width:0 允许收缩，避免内部超长内容撑破布局 */
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .app-header {
   height: 56px;
@@ -128,7 +185,11 @@ button:disabled {
 }
 .app-main {
   flex: 1;
+  /* min-height:0 解除 flex 子项默认 min-height:auto，
+     让溢出走内部滚动而非撑高父级；仅内容区滚动，菜单不动 */
+  min-height: 0;
   padding: 24px;
+  overflow-y: auto;
 }
 
 /* ---------- AuthLayout ---------- */
@@ -146,6 +207,16 @@ button:disabled {
   border-radius: 12px;
   padding: 32px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  /* 入场：登录是偶发场景，允许标准动效；从 0.96 起手而非 0 */
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity var(--duration-modal) var(--ease-out-strong),
+    transform var(--duration-modal) var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96);
+  }
 }
 .auth-form {
   display: flex;
@@ -170,15 +241,29 @@ button:disabled {
   font: inherit;
   background: var(--panel);
   color: var(--text-h);
+  /* 焦点环硬切显得粗糙，平滑过渡 border + shadow */
+  transition:
+    border-color var(--duration-press) var(--ease-out-strong),
+    box-shadow var(--duration-press) var(--ease-out-strong);
 }
 .auth-form input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--action);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 .auth-error {
   color: var(--danger);
   font-size: 13px;
+  /* 状态指示：平滑出现降低挫败感；用 transition 而非 keyframes 以便可打断 */
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-menu) var(--ease-out-strong),
+    transform var(--duration-menu) var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 /* ---------- 通用 ---------- */
@@ -189,4 +274,34 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 12px;
+  /* 罕见/首次场景（404、错误页），允许一点 delight：轻微上浮 */
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-modal) var(--ease-out-strong),
+    transform var(--duration-modal) var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------- 减动效兜底：前庭敏感用户 ----------
+   保留颜色/透明度过渡以辅助理解，仅移除 transform 位移/缩放 */
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .center-block,
+  .auth-error {
+    transform: none;
+    transition: opacity var(--duration-press) ease;
+  }
+  .auth-card,
+  .center-block {
+    @starting-style {
+      opacity: 0;
+    }
+  }
+  button:active {
+    transform: none;
+  }
 }
