@@ -12,3 +12,17 @@ export interface UserDTO {
   created_at: string;
   updated_at: string;
 }
+
+/** 登录请求体 */
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+/** 登录响应 */
+export interface LoginResponse {
+  access_token: string;
+  user: UserDTO;
+  /** Token 过期时间（秒） */
+  expires_in: number;
+}

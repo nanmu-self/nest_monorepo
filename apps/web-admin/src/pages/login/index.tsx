@@ -1,42 +1,60 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import type { LoginResponse } from '@short-link/shared';
+import { HttpError } from '@short-link/shared/http';
 
+import { login } from '@/api/auth';
 import { auth } from '@/router/guards';
 
 /**
- * 登录页占位实现。
+ * 登录页面。
  *
- * TODO：接后端 `/api/v1/auth/login`，成功后将 token 存入 localStorage。
- * 目前先接受任意非空账号密码，直接落一个假的 token 以打通路由/守卫流程。
+ * 调用后端 `/api/v1/auth/login` 接口，成功后将 token 存入 localStorage。
  */
 export default function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!username || !password) {
-      setError('请填写账号和密码');
+    if (!email || !password) {
+      setError('请填写邮箱和密码');
       return;
     }
-    auth.setToken('dev-token');
-    const from = params.get('from') || '/';
-    navigate(from, { replace: true });
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = (await login({ email, password }).send()) as LoginResponse;
+      auth.setToken(response.access_token);
+      const from = params.get('from') || '/';
+      navigate(from, { replace: true });
+    } catch (err) {
+      if (err instanceof HttpError) {
+        setError(err.message || '登录失败');
+      } else {
+        setError('登录失败');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
       <h1>登录</h1>
       <label>
-        账号
+        邮箱
         <input
-          type="text"
+          type="email"
           autoComplete="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
       </label>
       <label>
@@ -49,7 +67,9 @@ export default function LoginPage() {
         />
       </label>
       {error && <p className="auth-error">{error}</p>}
-      <button type="submit">登录</button>
+      <button type="submit" disabled={loading}>
+        {loading ? '登录中...' : '登录'}
+      </button>
     </form>
   );
 }

@@ -5,4 +5,4 @@
  * 避免服务端应用被拉入前端专用依赖。
  */
 export { HttpError } from './errors';
-export type { UserDTO, ApiResponse } from './contracts';
+export type { UserDTO, LoginRequest, LoginResponse, ApiResponse } from './contracts';
