@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { UserDTO, LoginRequest, LoginResponse } from '@short-link/shared';
@@ -23,14 +23,14 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new BadRequestException('邮箱或密码错误！');
     }
 
     // 验证密码
     const passwordValid = await bcrypt.compare(data.password, user.password_hash);
 
     if (!passwordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new BadRequestException('邮箱或密码错误！');
     }
 
     // 生成 JWT Token
