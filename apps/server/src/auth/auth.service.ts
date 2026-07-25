@@ -27,10 +27,7 @@ export class AuthService {
     }
 
     // 验证密码
-    const passwordValid = await bcrypt.compare(
-      data.password,
-      user.password_hash,
-    );
+    const passwordValid = await bcrypt.compare(data.password, user.password_hash);
 
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid email or password');

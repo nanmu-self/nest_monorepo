@@ -63,11 +63,7 @@ export class AllExceptionFilter implements ExceptionFilter {
       }
     }
     // 处理 Prisma 已知错误（可扩展更多 Prisma 错误码）
-    else if (
-      exception &&
-      typeof exception === 'object' &&
-      'code' in exception
-    ) {
+    else if (exception && typeof exception === 'object' && 'code' in exception) {
       const prismaError = exception as Record<string, unknown>;
 
       // Prisma 错误码映射
@@ -87,17 +83,12 @@ export class AllExceptionFilter implements ExceptionFilter {
           message = 'Database error';
       }
 
-      this.logger.error(
-        `Prisma error: ${prismaError.code} - ${JSON.stringify(prismaError.meta)}`,
-      );
+      this.logger.error(`Prisma error: ${prismaError.code} - ${JSON.stringify(prismaError.meta)}`);
     }
     // 处理普通 Error
     else if (exception instanceof Error) {
       message = exception.message;
-      this.logger.error(
-        `Unexpected error: ${exception.message}`,
-        exception.stack,
-      );
+      this.logger.error(`Unexpected error: ${exception.message}`, exception.stack);
     }
     // 其他未知异常
     else {
@@ -105,18 +96,13 @@ export class AllExceptionFilter implements ExceptionFilter {
     }
 
     // 生产环境隐藏 500 错误的详细信息
-    if (
-      httpStatus === HttpStatus.INTERNAL_SERVER_ERROR &&
-      process.env.NODE_ENV === 'production'
-    ) {
+    if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR && process.env.NODE_ENV === 'production') {
       message = 'Internal Server Error';
       details = undefined;
     }
 
     // 记录请求日志
-    this.logger.warn(
-      `[${httpStatus}] ${request.method} ${request.url} - ${message}`,
-    );
+    this.logger.warn(`[${httpStatus}] ${request.method} ${request.url} - ${message}`);
 
     const responseBody: {
       code: number;

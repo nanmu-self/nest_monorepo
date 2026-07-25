@@ -13,22 +13,22 @@
 
 ## 技术栈
 
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| 包管理 | pnpm workspace | 11 |
-| 运行时 | Node.js | ≥ 22.12 |
-| 语言 | TypeScript | 5.8 |
-| 后端框架 | NestJS | 11 |
-| 编译器 | SWC | - |
-| ORM | Prisma | 7 |
-| 数据库 | PostgreSQL | - |
-| 前端框架 | React | 19 |
-| 构建工具 | Vite | 8 |
-| 样式框架 | Tailwind CSS | 4 |
-| 前端编译 | React Compiler (Babel plugin) | - |
-| HTTP 客户端 | Alova | 3 |
-| 代码检查 | oxlint | - |
-| 代码格式化 | Prettier | 3 |
+| 层级        | 技术                          | 版本    |
+| ----------- | ----------------------------- | ------- |
+| 包管理      | pnpm workspace                | 11      |
+| 运行时      | Node.js                       | ≥ 22.12 |
+| 语言        | TypeScript                    | 5.8     |
+| 后端框架    | NestJS                        | 11      |
+| 编译器      | SWC                           | -       |
+| ORM         | Prisma                        | 7       |
+| 数据库      | PostgreSQL                    | -       |
+| 前端框架    | React                         | 19      |
+| 构建工具    | Vite                          | 8       |
+| 样式框架    | Tailwind CSS                  | 4       |
+| 前端编译    | React Compiler (Babel plugin) | -       |
+| HTTP 客户端 | Alova                         | 3       |
+| 代码检查    | oxlint                        | -       |
+| 代码格式化  | Prettier                      | 3       |
 
 ## 前置要求
 
@@ -133,48 +133,49 @@ pnpm dev
 
 在项目根目录执行：
 
-| 命令 | 说明 |
-|------|------|
-| `pnpm dev` | 并行启动所有包（shared + config-tailwind + ui + server + web-admin） |
-| `pnpm build` | 构建所有 workspace 包 |
-| `pnpm lint` | oxlint 检查全部代码 |
-| `pnpm lint:fix` | oxlint 自动修复 |
-| `pnpm format` | Prettier 格式化全部文件 |
-| `pnpm format:check` | 检查格式是否合规 |
-| `pnpm typecheck` | TypeScript Project References 增量类型检查 |
-| `pnpm clean` | 清理所有 dist 和 .tsbuildinfo |
+| 命令                | 说明                                                                 |
+| ------------------- | -------------------------------------------------------------------- |
+| `pnpm dev`          | 并行启动所有包（shared + config-tailwind + ui + server + web-admin） |
+| `pnpm build`        | 构建所有 workspace 包                                                |
+| `pnpm lint`         | oxlint 检查全部代码                                                  |
+| `pnpm lint:fix`     | oxlint 自动修复                                                      |
+| `pnpm format`       | Prettier 格式化全部文件                                              |
+| `pnpm format:check` | 检查格式是否合规                                                     |
+| `pnpm typecheck`    | TypeScript Project References 增量类型检查                           |
+| `pnpm clean`        | 清理所有 dist 和 .tsbuildinfo                                        |
 
 `apps/server` 内额外可用：
 
-| 命令 | 说明 |
-|------|------|
-| `pnpm migrate:create` | 创建并执行数据库迁移 |
-| `pnpm db:pull` | 从现有数据库反向生成 schema |
-| `pnpm db:comment:pull` | 拉取数据库字段注释 |
+| 命令                   | 说明                        |
+| ---------------------- | --------------------------- |
+| `pnpm migrate:create`  | 创建并执行数据库迁移        |
+| `pnpm db:pull`         | 从现有数据库反向生成 schema |
+| `pnpm db:comment:pull` | 拉取数据库字段注释          |
 
 ## 环境变量
 
 ### `apps/server/.env`
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `DATABASE_URL` | PostgreSQL 连接字符串 | - |
-| `PORT` | 服务监听端口 | `3000` |
-| `NODE_ENV` | 运行环境 | `development` |
-| `CORS_ORIGIN` | CORS 允许来源（逗号分隔） | `true`（允许所有） |
+| 变量           | 说明                      | 默认值             |
+| -------------- | ------------------------- | ------------------ |
+| `DATABASE_URL` | PostgreSQL 连接字符串     | -                  |
+| `PORT`         | 服务监听端口              | `3000`             |
+| `NODE_ENV`     | 运行环境                  | `development`      |
+| `CORS_ORIGIN`  | CORS 允许来源（逗号分隔） | `true`（允许所有） |
 
 ### `apps/web-admin/.env`
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `VITE_SERVER_URL` | Vite dev proxy 目标地址 | `http://localhost:3000` |
-| `VITE_API_BASE_URL` | 生产环境 API 基础路径 | `/api/v1` |
+| 变量                | 说明                    | 默认值                  |
+| ------------------- | ----------------------- | ----------------------- |
+| `VITE_SERVER_URL`   | Vite dev proxy 目标地址 | `http://localhost:3000` |
+| `VITE_API_BASE_URL` | 生产环境 API 基础路径   | `/api/v1`               |
 
 ## 架构设计要点
 
 ### 📦 Monorepo 包管理
 
 所有 `packages/*` 均使用统一的构建流程：
+
 - **tsup**：构建 ESM 格式 JS 产物，生成 sourcemap
 - **tsc**：生成 `.d.ts` 类型声明文件（配合 Project References）
 - **dist/**：唯一发布产物目录，禁止直接引用 src
@@ -194,11 +195,13 @@ import { createHttp } from '@short-link/shared/http';
 ### 🎨 样式系统
 
 **`@short-link/config-tailwind`** - 共享设计系统：
+
 - 定义品牌色阶、功能色、字体、圆角等设计 Token
 - 导出 `styles.css` 内含 `@theme` 和 `@layer components`
 - 消费方直接 import CSS 即可应用统一风格
 
 **`@short-link/ui`** - 共享组件库：
+
 - shadcn 风格组件（Button 等）
 - `cn()` 工具函数（clsx + tailwind-merge）
 - 所有组件支持 `asChild` 组合模式
@@ -206,6 +209,7 @@ import { createHttp } from '@short-link/shared/http';
 ### 🔌 API 响应封套
 
 后端 `TransformInterceptor` 统一成功响应格式：
+
 ```typescript
 {
   code: 0,          // 0 = 成功，非 0 = 业务错误
@@ -215,6 +219,7 @@ import { createHttp } from '@short-link/shared/http';
 ```
 
 前端 `createHttp` 自动解封套，直接返回 `data`：
+
 ```typescript
 // 直接拿到 UserDTO[]，无需每次 .data
 const users = await http.get<UserDTO[]>('/users');
@@ -232,7 +237,7 @@ Prisma 7 不再在 `schema.prisma` 中通过 `env()` 读取 URL，而是通过 `
 
 ```typescript
 @Controller('users')
-@Version('2')  // 仅在 v2 下可用
+@Version('2') // 仅在 v2 下可用
 export class UsersV2Controller {}
 ```
 

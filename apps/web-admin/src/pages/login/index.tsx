@@ -47,12 +47,14 @@ export default function LoginPage() {
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      <h1>登录</h1>
+      <h1>欢迎回来</h1>
+      <p className="auth-subtitle">登录以管理你的短链服务</p>
       <label>
         邮箱
         <input
           type="email"
           autoComplete="username"
+          placeholder="name@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -62,6 +64,7 @@ export default function LoginPage() {
         <input
           type="password"
           autoComplete="current-password"
+          placeholder="请输入密码"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
