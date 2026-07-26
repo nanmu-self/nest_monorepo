@@ -3,6 +3,10 @@
 @import '@short-link/config-tailwind/styles.css';
 @import '@short-link/ui/styles.css';
 
+/* Tailwind v4 默认忽略 node_modules，需显式声明扫描共享 UI 包源码，
+   否则 Button/Input/Field 等组件里的工具类不会被生成 */
+@source '../../../packages/ui/src/**/*.{ts,tsx}';
+
 /* ---------- web-admin 专属设计 token ---------- */
 @theme {
   /* 自定义缓动曲线：内置 ease/ease-out 不够劲，统一提到 theme 复用
@@ -341,97 +345,13 @@ button:disabled {
   max-width: 960px;
 }
 
-/* ---------- AuthLayout ---------- */
+/* ---------- AuthLayout ----------
+   仅负责居中，卡片由页面用 shadcn Card 渲染 */
 .auth-shell {
   min-height: 100svh;
   display: grid;
   place-items: center;
   padding: 24px;
-}
-.auth-card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--panel);
-  border-radius: 24px;
-  padding: 40px 36px;
-  /* 无硬边框，柔和投影：卡片像浮在背景上的一层材料 */
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.03),
-    0 12px 40px rgba(0, 0, 0, 0.08);
-  /* 入场：登录是偶发场景，允许标准动效；从 0.96 起手而非 0 */
-  opacity: 1;
-  transform: scale(1);
-  transition:
-    opacity var(--duration-modal) var(--ease-out-strong),
-    transform var(--duration-modal) var(--ease-out-strong);
-  @starting-style {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.auth-form h1 {
-  text-align: center;
-  font-size: 24px;
-  margin-bottom: 4px;
-}
-.auth-form .auth-subtitle {
-  text-align: center;
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-.auth-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-h);
-}
-.auth-form input {
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  font: inherit;
-  font-size: 15px;
-  background: var(--panel);
-  color: var(--text-h);
-  /* 焦点环硬切显得粗糙，平滑过渡 border + shadow */
-  transition:
-    border-color var(--duration-press) var(--ease-out-strong),
-    box-shadow var(--duration-press) var(--ease-out-strong);
-}
-.auth-form input::placeholder {
-  color: var(--text-muted);
-}
-.auth-form input:focus {
-  outline: none;
-  border-color: var(--action);
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
-}
-.auth-form button[type='submit'] {
-  margin-top: 8px;
-  width: 100%;
-}
-.auth-error {
-  color: var(--danger);
-  font-size: 13px;
-  text-align: center;
-  /* 状态指示：平滑出现降低挫败感；用 transition 而非 keyframes 以便可打断 */
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity var(--duration-menu) var(--ease-out-strong),
-    transform var(--duration-menu) var(--ease-out-strong);
-  @starting-style {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
 }
 
 /* ---------- 通用 ---------- */
@@ -473,14 +393,9 @@ button:disabled {
 /* ---------- 减动效兜底：前庭敏感用户 ----------
    保留颜色/透明度过渡以辅助理解，仅移除 transform 位移/缩放 */
 @media (prefers-reduced-motion: reduce) {
-  .auth-card,
-  .center-block,
-  .auth-error {
+  .center-block {
     transform: none;
     transition: opacity var(--duration-press) ease;
-  }
-  .auth-card,
-  .center-block {
     @starting-style {
       opacity: 0;
     }
