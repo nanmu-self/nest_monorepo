@@ -9,7 +9,7 @@ import type { ApiResponse } from '@short-link/shared';
  * 与前端 createHttp 的 onSuccess 解封套逻辑配合。
  *
  * 注意：
- *   - 错误响应（HttpException 抛出）不走此拦截器，保持 NestJS 默认 `{ statusCode, message, error }`
+ *   - 错误响应由 AllExceptionFilter 统一封套为 `{ code, message, data }`，不走此拦截器
  *   - 若返回值已是 ApiResponse 形状（含 code/data/message），不再二次包装
  */
 @Injectable()

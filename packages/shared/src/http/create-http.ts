@@ -8,7 +8,7 @@ import type { CreateHttpOptions } from './types';
 
 /**
  * 从响应体中提取错误信息。
- * 兼容 NestJS 默认错误格式 `{ statusCode, message, error }`。
+ * 兼容统一封套 `{ code, message, data? }` 以及其他含 message 字段的错误体。
  */
 function extractErrorMessage(body: unknown): string | undefined {
   if (typeof body === 'object' && body !== null && 'message' in body) {

@@ -17,7 +17,7 @@ export class AuthService {
    */
   async login(data: LoginRequest): Promise<LoginResponse> {
     // 查找用户
-    const user = await this.prisma.users.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
 
@@ -49,7 +49,7 @@ export class AuthService {
    * 获取当前登录用户信息
    */
   async getProfile(userId: number): Promise<UserDTO> {
-    const user = await this.prisma.users.findUniqueOrThrow({
+    const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
     });
     return this.toUserDTO(user);
@@ -60,7 +60,7 @@ export class AuthService {
    */
   async createUser(data: { email: string; password: string }) {
     const password_hash = await bcrypt.hash(data.password, 10);
-    return this.prisma.users.create({
+    return this.prisma.user.create({
       data: {
         email: data.email,
         password_hash,

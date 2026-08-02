@@ -7,7 +7,7 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<UserDTO[]> {
-    const users = await this.prisma.users.findMany({
+    const users = await this.prisma.user.findMany({
       select: {
         id: true,
         email: true,

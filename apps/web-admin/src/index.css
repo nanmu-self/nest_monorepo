@@ -3,9 +3,8 @@
 @import '@short-link/config-tailwind/styles.css';
 @import '@short-link/ui/styles.css';
 
-/* Tailwind v4 默认忽略 node_modules，需显式声明扫描共享 UI 包源码，
-   否则 Button/Input/Field 等组件里的工具类不会被生成 */
-@source '../../../packages/ui/src/**/*.{ts,tsx}';
+/* @short-link/ui 的 styles.css 已通过 @source 声明自身组件文件位置，
+   Tailwind 会自动扫描 dist 中的 cva 类名字符串，无需在此跨包引用路径。 */
 
 /* ---------- web-admin 专属设计 token ---------- */
 @theme {
@@ -15,18 +14,8 @@
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* Apple 系统蓝：覆盖共享包的 brand 色阶，
-     让 bg-brand-500 / text-brand-500 等工具类输出 Apple 观感 */
-  --color-brand-50: #e8f0fe;
-  --color-brand-100: #d2e3fc;
-  --color-brand-200: #aecffc;
-  --color-brand-300: #7fb3fa;
-  --color-brand-400: #4b94f8;
-  --color-brand-500: #0071e3;
-  --color-brand-600: #0060c9;
-  --color-brand-700: #004fae;
-  --color-brand-800: #003e8a;
-  --color-brand-900: #002f6b;
+  /* 品牌色阶（--color-brand-*）由 @short-link/config-tailwind 统一定义为 Apple 系统蓝，
+     此处不再覆盖，避免真理双源 */
 }
 
 /* ---------- web-admin 专属组件类 ---------- */

@@ -3,21 +3,23 @@
  *
  * 消费方通过 @import '@short-link/config-tailwind/styles.css' 引入，
  * 可在自身 CSS 中追加同名 @layer components 覆盖（后定义者胜出）。
+ *
+ * 本文件是设计 token 的唯一真理源；theme.ts 已删除（Tailwind v4 只读 CSS @theme）。
  */
 
 /* ---------- 设计 token：生成 Tailwind 工具类 ---------- */
 @theme {
-  /* 品牌色阶：bg-brand-500 / text-brand-500 / from-brand-400 ... */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
+  /* 品牌色阶：Apple 系统蓝，bg-brand-500 / text-brand-500 / from-brand-400 ... */
+  --color-brand-50: #e8f0fe;
+  --color-brand-100: #d2e3fc;
+  --color-brand-200: #aecffc;
+  --color-brand-300: #7fb3fa;
+  --color-brand-400: #4b94f8;
+  --color-brand-500: #0071e3;
+  --color-brand-600: #0060c9;
+  --color-brand-700: #004fae;
+  --color-brand-800: #003e8a;
+  --color-brand-900: #002f6b;
 
   /* 功能色 */
   --color-success: #22c55e;

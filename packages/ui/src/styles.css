@@ -4,18 +4,22 @@
  * 消费方通过 @import '@short-link/ui/styles.css' 引入，
  * 生成 bg-background / text-foreground / bg-primary ... 等工具类。
  *
- * 色值与 web-admin 现有 :root 变量保持一致，确保 shadcn 组件与原有 UI 视觉统一。
- * --accent 在 shadcn 语义中是「hover 背景」，与原有 --accent（品牌操作色）含义不同，
- * 因此原有 CSS 已将 --accent 重命名为 --action，避免冲突。
+ * 品牌色与 @short-link/config-tailwind 的 brand 色阶保持一致（Apple 系统蓝），
+ * 确保 shadcn 组件（bg-primary）与页面其他部分（bg-brand-500）视觉统一。
  */
 
 @custom-variant dark (&:is(.dark *));
+
+/* 声明本包组件文件的位置，供消费方 Tailwind 扫描工具类。
+   路径相对于本文件：src 下匹配 ts/tsx 源码，复制到 dist 后匹配 js 产物，
+   消费方无需感知包内目录结构。 */
+@source './**/*.{ts,tsx,js}';
 
 :root {
   --radius: 0.625rem;
 
   /* 基础色 */
-  --background: #f6f7fb;
+  --background: #f5f5f7;
   --foreground: #4a5162;
 
   /* 卡片 / 弹层 */
@@ -24,8 +28,8 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
 
-  /* 主色：indigo-500，匹配原有 --action */
-  --primary: #6366f1;
+  /* 主色：Apple 系统蓝，与 config-tailwind brand-500 一致 */
+  --primary: #0071e3;
   --primary-foreground: #ffffff;
 
   /* 次级 */
@@ -46,7 +50,7 @@
   /* 边框 / 输入 / 焦点环 */
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #6366f1;
+  --ring: #0071e3;
 }
 
 .dark {
@@ -58,7 +62,7 @@
   --popover: #1e293b;
   --popover-foreground: #f8fafc;
 
-  --primary: #818cf8;
+  --primary: #4b94f8;
   --primary-foreground: #0f172a;
 
   --secondary: #334155;
@@ -74,7 +78,7 @@
 
   --border: #334155;
   --input: #334155;
-  --ring: #818cf8;
+  --ring: #4b94f8;
 }
 
 /* 将语义变量映射为 Tailwind 工具类：bg-background / text-primary / border-border ... */

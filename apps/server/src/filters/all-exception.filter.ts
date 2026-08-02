@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { BizException } from '@/common/biz-exception';
 
 /**
  * Prisma 已知错误码格式：P + 4 位数字（如 P2002、P2025）。
@@ -58,6 +59,8 @@ export class AllExceptionFilter implements ExceptionFilter {
     let httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal Server Error';
     let details: unknown = undefined;
+    // 业务码：BizException 时设置（>= 10000），否则响应体 code 取 httpStatus
+    let bizCode: number | undefined;
 
     // 处理 NestJS HttpException
     if (exception instanceof HttpException) {
@@ -82,6 +85,14 @@ export class AllExceptionFilter implements ExceptionFilter {
       } else {
         message = exception.message;
       }
+    }
+    // 处理业务异常：code 取业务码（>= 10000），HTTP 状态由 header 表达
+    else if (exception instanceof BizException) {
+      httpStatus = exception.httpStatus;
+      bizCode = exception.bizCode;
+      message = exception.message;
+      details = exception.details;
+      this.logger.warn(`Business error [${exception.bizCode}]: ${exception.message}`);
     }
     // 处理 Prisma 已知错误（P2002 唯一约束冲突、P2025 记录未找到等）
     else if (isPrismaKnownError(exception)) {
@@ -127,7 +138,7 @@ export class AllExceptionFilter implements ExceptionFilter {
       message: string;
       data?: unknown;
     } = {
-      code: httpStatus,
+      code: bizCode ?? httpStatus,
       message,
     };
 

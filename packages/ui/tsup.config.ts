@@ -6,8 +6,20 @@ import { defineConfig } from 'tsup';
  * UI 组件包构建配置。
  *
  * 声明文件由 `tsc -p tsconfig.build.json` 生成。
- * styles.css 由 build 脚本手动复制到 dist/。
+ * styles.css 由 onSuccess 复制到 dist/；watch 模式下额外启动
+ * fs.watch 监听 styles.css，因为纯 CSS 改动不在 tsup 的依赖图里，
+ * 改 .tsx 会顺带重建，但改 CSS 不会。
  */
+const srcCss = path.join(process.cwd(), 'src', 'styles.css');
+const distCss = path.join(process.cwd(), 'dist', 'styles.css');
+
+async function copyCss() {
+  await fs.promises.mkdir(path.dirname(distCss), { recursive: true });
+  await fs.promises.copyFile(srcCss, distCss);
+}
+
+let cssWatcher: fs.FSWatcher | undefined;
+
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
@@ -20,11 +32,14 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   jsx: 'automatic',
-  onSuccess: async () => {
-    // 复制 CSS 文件到 dist
-    const srcCss = path.join(process.cwd(), 'src', 'styles.css');
-    const distCss = path.join(process.cwd(), 'dist', 'styles.css');
-    await fs.promises.mkdir(path.dirname(distCss), { recursive: true });
-    await fs.promises.copyFile(srcCss, distCss);
+  async onSuccess() {
+    await copyCss();
+
+    // watch 模式下，styles.css 不在 tsup 依赖图中，需自行监听
+    if (!cssWatcher && process.argv.includes('--watch')) {
+      cssWatcher = fs.watch(srcCss, { persistent: true }, () => {
+        void copyCss();
+      });
+    }
   },
 });
