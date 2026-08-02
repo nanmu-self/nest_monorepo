@@ -9,6 +9,27 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 
 /**
+ * Prisma 已知错误码格式：P + 4 位数字（如 P2002、P2025）。
+ *
+ * 不能用 `'code' in exception` 判定——Node.js 系统错误全都有 .code
+ * （ENOENT / ECONNREFUSED / ETIMEDOUT / ENOTFOUND ...），会被误判为
+ * 数据库错误并吞掉 instanceof Error 分支的堆栈日志。
+ */
+const PRISMA_CODE_RE = /^P\d{4}$/;
+
+function isPrismaKnownError(
+  exception: unknown,
+): exception is { code: string; meta?: Record<string, unknown> } {
+  return (
+    typeof exception === 'object' &&
+    exception !== null &&
+    'code' in exception &&
+    typeof (exception as { code: unknown }).code === 'string' &&
+    PRISMA_CODE_RE.test((exception as { code: string }).code)
+  );
+}
+
+/**
  * 统一错误响应封套。
  *
  * 捕获所有异常，转换为与成功响应一致的格式：
@@ -62,17 +83,14 @@ export class AllExceptionFilter implements ExceptionFilter {
         message = exception.message;
       }
     }
-    // 处理 Prisma 已知错误（可扩展更多 Prisma 错误码）
-    else if (exception && typeof exception === 'object' && 'code' in exception) {
-      const prismaError = exception as Record<string, unknown>;
-
-      // Prisma 错误码映射
-      switch (prismaError.code) {
+    // 处理 Prisma 已知错误（P2002 唯一约束冲突、P2025 记录未找到等）
+    else if (isPrismaKnownError(exception)) {
+      switch (exception.code) {
         case 'P2002': // 唯一约束冲突
           httpStatus = HttpStatus.CONFLICT;
           message = 'Unique constraint violation';
           details = {
-            fields: (prismaError.meta as Record<string, unknown>)?.target,
+            fields: exception.meta?.target,
           };
           break;
         case 'P2025': // 记录未找到
@@ -83,7 +101,7 @@ export class AllExceptionFilter implements ExceptionFilter {
           message = 'Database error';
       }
 
-      this.logger.error(`Prisma error: ${prismaError.code} - ${JSON.stringify(prismaError.meta)}`);
+      this.logger.error(`Prisma error: ${exception.code} - ${JSON.stringify(exception.meta)}`);
     }
     // 处理普通 Error
     else if (exception instanceof Error) {
