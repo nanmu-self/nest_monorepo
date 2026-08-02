@@ -19,6 +19,20 @@ function extractErrorMessage(body: unknown): string | undefined {
 }
 
 /**
+ * 从响应体中提取业务码（>= 10000）。
+ * HTTP 错误码（4xx/5xx）不是业务码，返回 undefined。
+ */
+function extractBizCode(body: unknown): number | undefined {
+  if (typeof body === 'object' && body !== null && 'code' in body) {
+    const code = (body as Record<string, unknown>).code;
+    if (typeof code === 'number' && code >= 10000) {
+      return code;
+    }
+  }
+  return undefined;
+}
+
+/**
  * 判断响应体是否为标准封套 `{ code, data, message }`。
  */
 function isApiResponse(body: unknown): body is ApiResponse {
@@ -88,7 +102,7 @@ export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
             body = undefined;
           }
           const message = extractErrorMessage(body) ?? response.statusText;
-          const error = new HttpError(response.status, message, body);
+          const error = new HttpError(response.status, message, body, extractBizCode(body));
           options.onError?.(error);
           throw error;
         }
@@ -102,7 +116,7 @@ export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
             return body.data;
           }
           const message = body.message || 'Business Error';
-          const error = new HttpError(response.status, message, body);
+          const error = new HttpError(response.status, message, body, extractBizCode(body));
           options.onError?.(error);
           throw error;
         }

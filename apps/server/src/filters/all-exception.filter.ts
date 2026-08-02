@@ -37,9 +37,10 @@ function isPrismaKnownError(
  * 捕获所有异常，转换为与成功响应一致的格式：
  * { code: number, message: string, data?: any }
  *
- * code 取值：
- * - HTTP 状态码（400, 401, 403, 404, 500 等）
- * - 0 = 成功（不走此过滤器）
+ * code 取值（命名空间见 @short-link/shared 的 ApiResponse）：
+ * - HTTP 状态码（400, 401, 403, 404, 500 等）：HttpException / Prisma 错误 / 未知 Error
+ * - >= 10000：业务错误码，由 BizException 携带，HTTP 状态仍由 header 表达
+ * - 0 = 成功（走 TransformInterceptor，不走此过滤器）
  *
  * 与前端 @short-link/shared/http 的错误处理逻辑配合。
  */
