@@ -1,12 +1,94 @@
 /**
  * 集中式环境变量校验。
  *
- * 启动时强制存在的配置在此处读取并校验，缺失或不合法直接 throw，
- * 让进程崩溃，而不是用硬编码的不安全默认值静默启动。
+ * 启动时一次性读取并校验所有必需配置，缺失或不合法直接 throw，
+ * 让进程在启动阶段崩溃，而不是带着不安全默认值静默运行、
+ * 等到第一个请求才 500。
  *
  * 注意：本模块依赖 main.ts 首行 `import 'dotenv/config'` 已执行，
  * 不要在 dotenv 加载前被其他模块间接引入。
  */
+
+// ---------- NODE_ENV ----------
+
+const VALID_NODE_ENVS = ['development', 'production', 'test'] as const;
+type NodeEnv = (typeof VALID_NODE_ENVS)[number];
+
+function parseNodeEnv(): NodeEnv {
+  const raw = process.env.NODE_ENV ?? 'development';
+  if (!VALID_NODE_ENVS.includes(raw as NodeEnv)) {
+    throw new Error(
+      `NODE_ENV="${raw}" 不合法，必须是 ${VALID_NODE_ENVS.join(' / ')} 之一（拼错会导致生产守卫静默失效）`,
+    );
+  }
+  return raw as NodeEnv;
+}
+
+export const NODE_ENV = parseNodeEnv();
+export const IS_PRODUCTION = NODE_ENV === 'production';
+
+// ---------- PORT ----------
+
+function parsePort(): number {
+  const raw = process.env.PORT ?? '3000';
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`PORT="${raw}" 不合法，必须是 1–65535 的整数`);
+  }
+  return port;
+}
+
+export const PORT = parsePort();
+
+// ---------- DATABASE_URL ----------
+
+function requireDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error('DATABASE_URL 未配置：请在 apps/server/.env 中设置 PostgreSQL 连接字符串');
+  }
+  if (!url.startsWith('postgresql://') && !url.startsWith('postgres://')) {
+    throw new Error('DATABASE_URL 必须以 postgresql:// 或 postgres:// 开头');
+  }
+  return url;
+}
+
+export const DATABASE_URL = requireDatabaseUrl();
+
+// ---------- CORS_ORIGIN ----------
+
+/**
+ * 解析 CORS 允许来源。
+ * - production 必须显式配置，禁止"允许所有 + 带凭证"
+ * - 非 production 未配置时返回 true（反射请求 Origin，仅限本地开发）
+ */
+function parseCorsOrigin(): string[] | true {
+  const raw = process.env.CORS_ORIGIN?.trim();
+
+  if (!raw) {
+    if (IS_PRODUCTION) {
+      throw new Error(
+        'CORS_ORIGIN 未配置：生产环境必须显式设置允许的来源（逗号分隔），禁止使用"允许所有"',
+      );
+    }
+    return true;
+  }
+
+  const origins = raw
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  if (origins.length === 0) {
+    throw new Error('CORS_ORIGIN 解析后为空，请检查格式（逗号分隔的来源列表）');
+  }
+
+  return origins;
+}
+
+export const CORS_ORIGIN = parseCorsOrigin();
+
+// ---------- JWT_SECRET ----------
 
 /** HS256 对称密钥建议 >= 256 bit，即 >= 32 字节 */
 const JWT_SECRET_MIN_LENGTH = 32;
@@ -35,7 +117,7 @@ function requireJwtSecret(): string {
   }
   if (INSECURE_JWT_SECRETS.has(secret)) {
     throw new Error(
-      `JWT_SECRET 使用了公开的占位值，请用 openssl rand -base64 48 生成一个真实随机密钥`,
+      'JWT_SECRET 使用了公开的占位值，请用 openssl rand -base64 48 生成一个真实随机密钥',
     );
   }
   if (secret.length < JWT_SECRET_MIN_LENGTH) {
@@ -46,8 +128,9 @@ function requireJwtSecret(): string {
   return secret;
 }
 
-/** 校验通过的 JWT 签名密钥，启动时一次性求值 */
 export const JWT_SECRET = requireJwtSecret();
+
+// ---------- 业务常量 ----------
 
 /** Token 有效期（秒），JwtModule 与登录响应共用此值，避免漂移 */
 export const JWT_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 天

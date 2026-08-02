@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { BizException } from '@/common/biz-exception';
+import { IS_PRODUCTION } from '@/config/env';
 
 /**
  * Prisma 已知错误码格式：P + 4 位数字（如 P2002、P2025）。
@@ -125,7 +126,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     }
 
     // 生产环境隐藏 500 错误的详细信息
-    if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR && process.env.NODE_ENV === 'production') {
+    if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR && IS_PRODUCTION) {
       message = 'Internal Server Error';
       details = undefined;
     }

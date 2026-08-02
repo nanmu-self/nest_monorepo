@@ -1,21 +1,14 @@
 import { Global, Module } from '@nestjs/common';
-import { PrismaService, DATABASE_URL } from './prisma.service';
+import { PrismaService } from './prisma.service';
 
+/**
+ * Prisma 全局模块。
+ *
+ * DATABASE_URL 由 @/config/env 在启动时校验，无需再用工厂提供。
+ */
 @Global()
 @Module({
-  providers: [
-    {
-      provide: DATABASE_URL,
-      useFactory: () => {
-        const url = process.env.DATABASE_URL;
-        if (!url) {
-          throw new Error('DATABASE_URL is not set; check apps/server/.env');
-        }
-        return url;
-      },
-    },
-    PrismaService,
-  ],
+  providers: [PrismaService],
   exports: [PrismaService],
 })
 export class PrismaModule {}
