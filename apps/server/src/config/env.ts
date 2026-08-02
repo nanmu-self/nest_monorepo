@@ -11,11 +11,31 @@
 /** HS256 对称密钥建议 >= 256 bit，即 >= 32 字节 */
 const JWT_SECRET_MIN_LENGTH = 32;
 
+/**
+ * 已知不安全的占位/默认值，拒绝启动。
+ *
+ * 长度校验只能拦住"太短"，拦不住 cp .env.example .env 后原样使用的
+ * 公开占位符——这些字符串写在仓库里，任何人都能看到，用它们签名
+ * 等同于无密钥。
+ */
+const INSECURE_JWT_SECRETS = new Set([
+  'replace-with-a-long-random-string-at-least-32-chars',
+  'default-secret-change-in-production',
+  'your-secret-key-change-in-production',
+  'change-me',
+  'secret',
+]);
+
 function requireJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error(
-      `JWT_SECRET 未配置：请在 apps/server/.env 中设置一个长度 >= ${JWT_SECRET_MIN_LENGTH} 的随机字符串`,
+      `JWT_SECRET 未配置：请在 apps/server/.env 中设置一个长度 >= ${JWT_SECRET_MIN_LENGTH} 的随机字符串（openssl rand -base64 48）`,
+    );
+  }
+  if (INSECURE_JWT_SECRETS.has(secret)) {
+    throw new Error(
+      `JWT_SECRET 使用了公开的占位值，请用 openssl rand -base64 48 生成一个真实随机密钥`,
     );
   }
   if (secret.length < JWT_SECRET_MIN_LENGTH) {
