@@ -4,20 +4,21 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { JWT_SECRET, JWT_EXPIRES_IN } from '@/config/env';
 
 /**
  * 认证模块。
  *
  * 提供 JWT 认证、登录接口、用户信息查询功能。
- * JWT_SECRET 建议通过环境变量配置，生产环境必须修改。
+ * JWT_SECRET 由 @/config/env 在启动时强制校验，缺失或过短直接崩溃。
  */
 @Module({
   imports: [
     PassportModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'default-secret-change-in-production',
-      signOptions: { expiresIn: '7d' },
+      secret: JWT_SECRET,
+      signOptions: { expiresIn: JWT_EXPIRES_IN },
     }),
   ],
   controllers: [AuthController],

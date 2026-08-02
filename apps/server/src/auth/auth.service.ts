@@ -3,8 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { UserDTO, LoginRequest, LoginResponse } from '@short-link/shared';
 import { PrismaService } from '@/prisma/prisma.service';
-
-const JWT_EXPIRES_IN = 60 * 60 * 24 * 7; // 7 天
+import { JWT_EXPIRES_IN } from '@/config/env';
 
 @Injectable()
 export class AuthService {
@@ -33,17 +32,11 @@ export class AuthService {
       throw new BadRequestException('邮箱或密码错误！');
     }
 
-    // 生成 JWT Token
-    const access_token = this.jwtService.sign(
-      {
-        sub: user.id,
-        email: user.email,
-      },
-      {
-        expiresIn: JWT_EXPIRES_IN,
-        secret: process.env.JWT_SECRET || 'default-secret-change-in-production',
-      },
-    );
+    // 生成 JWT Token，secret 与 expiresIn 已由全局 JwtModule 提供
+    const access_token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+    });
 
     return {
       access_token,
