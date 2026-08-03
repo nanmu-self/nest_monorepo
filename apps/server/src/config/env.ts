@@ -5,9 +5,12 @@
  * 让进程在启动阶段崩溃，而不是带着不安全默认值静默运行、
  * 等到第一个请求才 500。
  *
- * 注意：本模块依赖 main.ts 首行 `import 'dotenv/config'` 已执行，
- * 不要在 dotenv 加载前被其他模块间接引入。
+ * dotenv 在本模块顶部自行加载，因此无论谁先 import 本模块
+ * （main.ts、Nest 模块、脚本、测试）都能读到 .env。
+ * 不要把它挪回调用方，那会形成"必须第一行 import"的隐性顺序契约，
+ * 一旦有人调整 import 顺序就会读到 undefined 而静默降级。
  */
+import 'dotenv/config';
 
 // ---------- NODE_ENV ----------
 

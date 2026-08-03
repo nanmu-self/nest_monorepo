@@ -3,8 +3,20 @@ import adapterFetch from 'alova/fetch';
 import type { StatesExport } from 'alova';
 
 import { HttpError } from '../errors';
+import { ErrorCode } from '../constants/error-codes';
 import type { ApiResponse } from '../contracts';
 import type { CreateHttpOptions } from './types';
+
+/**
+ * 判定 401 是否应触发 onUnauthorized（清 token + 跳登录页）。
+ *
+ * 「登录时凭证错误」也是 401，但用户此刻就在登录页，
+ * 跳转会连带冲掉页面上刚渲染的错误提示，用户只看到页面闪一下。
+ * 这类 401 由调用方就地展示错误，不做全局跳转。
+ */
+function shouldTriggerUnauthorized(body: unknown): boolean {
+  return extractBizCode(body) !== ErrorCode.AUTH_INVALID_CREDENTIALS;
+}
 
 /**
  * 从响应体中提取错误信息。
@@ -88,11 +100,6 @@ export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
 
     responded: {
       async onSuccess(response) {
-        // 401: 未授权，触发回调（如跳转登录）
-        if (response.status === 401) {
-          options.onUnauthorized?.();
-        }
-
         // 非 2xx：解析错误体并抛出 HttpError
         if (!response.ok) {
           let body: unknown;
@@ -101,6 +108,13 @@ export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
           } catch {
             body = undefined;
           }
+
+          // 401 需在解析 body 之后判定：登录凭证错误也是 401，
+          // 但不应触发跳转（见 shouldTriggerUnauthorized）
+          if (response.status === 401 && shouldTriggerUnauthorized(body)) {
+            options.onUnauthorized?.();
+          }
+
           const message = extractErrorMessage(body) ?? response.statusText;
           const error = new HttpError(response.status, message, body, extractBizCode(body));
           options.onError?.(error);
