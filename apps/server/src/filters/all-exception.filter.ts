@@ -43,6 +43,11 @@ function isPrismaKnownError(
  * - 0 = 成功（走 TransformInterceptor，不走此过滤器）
  *
  * 与前端 @short-link/shared/http 的错误处理逻辑配合。
+ *
+ * 日志约定：每个异常只输出一行，包含状态码、业务码、请求方法/路径、
+ * 错误原文与分类上下文，便于日志聚合与告警关联。
+ * 5xx 用 error 级别并附堆栈，4xx 用 warn 级别不带堆栈。
+ * 日志中的 message 始终是脱敏前的原文，与响应体可能不同。
  */
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
@@ -63,7 +68,14 @@ export class AllExceptionFilter implements ExceptionFilter {
     let details: unknown = undefined;
     // 业务码：BizException 时设置（>= 10000），否则响应体 code 取 httpStatus
     let bizCode: number | undefined;
+    // 仅用于日志的补充上下文（如 Prisma 错误码、异常类型），不进入响应体
+    let logContext: string | undefined;
+    // 堆栈仅在 5xx 时输出，4xx 属于客户端问题、堆栈是噪音
+    let stack: string | undefined;
 
+    // 各分支只做「分类」，不打日志——日志在方法末尾统一输出一行，
+    // 避免同一个错误分散成多行、无法关联聚合。
+    //
     // 处理业务异常：必须在 HttpException 之前（BizException 继承自 HttpException）。
     // code 取业务码（>= 10000），HTTP 状态由 header 表达。
     if (exception instanceof BizException) {
@@ -71,7 +83,6 @@ export class AllExceptionFilter implements ExceptionFilter {
       bizCode = exception.bizCode;
       message = exception.message;
       details = exception.details;
-      this.logger.warn(`Business error [${exception.bizCode}]: ${exception.message}`);
     }
     // 处理 NestJS HttpException
     else if (exception instanceof HttpException) {
@@ -96,6 +107,11 @@ export class AllExceptionFilter implements ExceptionFilter {
       } else {
         message = exception.message;
       }
+
+      // 显式抛出的 5xx（如 InternalServerErrorException）保留堆栈
+      if (httpStatus >= HttpStatus.INTERNAL_SERVER_ERROR) {
+        stack = exception.stack;
+      }
     }
     // 处理 Prisma 已知错误（P2002 唯一约束冲突、P2025 记录未找到等）
     else if (isPrismaKnownError(exception)) {
@@ -113,19 +129,25 @@ export class AllExceptionFilter implements ExceptionFilter {
           break;
         default:
           message = 'Database error';
+          // 未识别的 Prisma 码会落到 500，保留堆栈用于定位
+          stack = exception instanceof Error ? exception.stack : undefined;
       }
 
-      this.logger.error(`Prisma error: ${exception.code} - ${JSON.stringify(exception.meta)}`);
+      logContext = `prisma=${exception.code} meta=${JSON.stringify(exception.meta)}`;
     }
     // 处理普通 Error
     else if (exception instanceof Error) {
       message = exception.message;
-      this.logger.error(`Unexpected error: ${exception.message}`, exception.stack);
+      stack = exception.stack;
+      logContext = `type=${exception.name}`;
     }
     // 其他未知异常
     else {
-      this.logger.error(`Unknown exception type: ${typeof exception}`);
+      logContext = `type=${typeof exception} raw=${String(exception)}`;
     }
+
+    // 真实错误信息，在生产脱敏前留存，保证日志始终记录可诊断的原文
+    const logMessage = message;
 
     // 生产环境隐藏 500 错误的详细信息
     if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR && IS_PRODUCTION) {
@@ -133,8 +155,23 @@ export class AllExceptionFilter implements ExceptionFilter {
       details = undefined;
     }
 
-    // 记录请求日志
-    this.logger.warn(`[${httpStatus}] ${request.method} ${request.url} - ${message}`);
+    // 统一输出单行日志：一个错误一条记录，便于聚合与告警。
+    // 5xx 用 error（带堆栈），4xx 用 warn（客户端问题，不需要堆栈噪音）。
+    const logLine = [
+      `[${httpStatus}]`,
+      bizCode !== undefined ? `biz=${bizCode}` : undefined,
+      `${request.method} ${request.url}`,
+      `- ${logMessage}`,
+      logContext,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    if (httpStatus >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(logLine, stack);
+    } else {
+      this.logger.warn(logLine);
+    }
 
     const responseBody: {
       code: number;
