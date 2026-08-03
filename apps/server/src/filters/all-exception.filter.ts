@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import type { Request, Response } from 'express';
 import { BizException } from '@/common/biz-exception';
 import { IS_PRODUCTION } from '@/config/env';
 
@@ -59,8 +60,10 @@ export class AllExceptionFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
 
     const ctx = host.switchToHttp();
+    // 显式使用 express 的类型：全局 Request/Response 是 @types/node 的 fetch 版本，
+    // 二者恰好都有 method/url 所以能过类型检查，但 ip、headers 索引、user 等字段全然不同。
     const request = ctx.getRequest<Request>();
-    const response = ctx.getResponse();
+    const response = ctx.getResponse<Response>();
 
     // 默认 500 错误
     let httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -160,7 +163,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     const logLine = [
       `[${httpStatus}]`,
       bizCode !== undefined ? `biz=${bizCode}` : undefined,
-      `${request.method} ${request.url}`,
+      `${request.method} ${request.originalUrl}`,
       `- ${logMessage}`,
       logContext,
     ]
