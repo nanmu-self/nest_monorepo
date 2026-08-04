@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "pnpm --filter @short-link/config-tailwind --filter @short-link/ui --filter @short-link/shared build",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint .",

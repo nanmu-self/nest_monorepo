@@ -32,11 +32,25 @@ export const IS_PRODUCTION = NODE_ENV === 'production';
 
 // ---------- PORT ----------
 
+/** 未显式配置时的监听端口 */
+const DEFAULT_PORT = 3000;
+
+/**
+ * 解析监听端口。
+ *
+ * 允许 0：TCP 语义上 0 表示“由内核分配空闲端口”，
+ * 集成测试并行启动多个实例时靠它避免端口冲突。
+ * 空字符串会被单独拦掉——Number('') === 0，
+ * 否则 `PORT=` 这种写错的配置会静默变成随机端口。
+ */
 function parsePort(): number {
-  const raw = process.env.PORT ?? '3000';
+  const raw = process.env.PORT?.trim();
+  if (raw === undefined || raw === '') {
+    return DEFAULT_PORT;
+  }
   const port = Number(raw);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`PORT="${raw}" 不合法，必须是 1–65535 的整数`);
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`PORT="${raw}" 不合法，必须是 0–65535 的整数（0 表示由内核分配）`);
   }
   return port;
 }

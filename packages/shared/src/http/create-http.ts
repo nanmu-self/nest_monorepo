@@ -8,14 +8,25 @@ import type { ApiResponse } from '../contracts';
 import type { CreateHttpOptions } from './types';
 
 /**
- * 判定 401 是否应触发 onUnauthorized（清 token + 跳登录页）。
+ * 不触发全局跳转的 401 业务码白名单。
  *
- * 「登录时凭证错误」也是 401，但用户此刻就在登录页，
- * 跳转会连带冲掉页面上刚渲染的错误提示，用户只看到页面闪一下。
- * 这类 401 由调用方就地展示错误，不做全局跳转。
+ * 语义：「用户主动提交凭证但验证失败」——此时用户就在登录页，
+ * 跳转会冲掉页面上刚渲染的错误提示，用户只看到页面闪一下。
+ *
+ * 除此之外的所有 401（token 过期/无效、账号被注销、未携带凭证）
+ * 都意味着“当前会话不可用”，必须清 token 并跳登录页。
+ * 新增认证类业务码时，只有属于前一类才加进这里。
+ */
+const UNAUTHORIZED_EXEMPT_BIZ_CODES = new Set<number>([ErrorCode.AUTH_INVALID_CREDENTIALS]);
+
+/**
+ * 判定 401 是否应触发 onUnauthorized（清 token + 跳登录页）。
  */
 function shouldTriggerUnauthorized(body: unknown): boolean {
-  return extractBizCode(body) !== ErrorCode.AUTH_INVALID_CREDENTIALS;
+  const bizCode = extractBizCode(body);
+  // 无业务码的 401（如 Nest 默认 UnauthorizedException）一律跳转
+  if (bizCode === undefined) return true;
+  return !UNAUTHORIZED_EXEMPT_BIZ_CODES.has(bizCode);
 }
 
 /**

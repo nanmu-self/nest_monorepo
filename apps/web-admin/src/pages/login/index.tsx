@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LoaderCircle } from 'lucide-react';
 import type { LoginResponse } from '@short-link/shared';
-import { HttpError } from '@short-link/shared/http';
+import { resolveErrorMessage } from '@/lib/error-message';
 import {
   Button,
   Card,
@@ -70,7 +70,8 @@ export default function LoginPage() {
       const from = params.get('from') || '/';
       navigate(from, { replace: true });
     } catch (err) {
-      setFormError(err instanceof HttpError ? err.message || '登录失败' : '登录失败');
+      // 文案按业务码解析，映射表见 @/lib/error-message
+      setFormError(resolveErrorMessage(err, '登录失败'));
     } finally {
       setLoading(false);
     }
