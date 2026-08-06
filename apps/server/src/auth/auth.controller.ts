@@ -1,7 +1,9 @@
 import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
-import type { LoginRequest, LoginResponse, UserDTO } from '@short-link/shared';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import type { LoginResponse, UserDTO } from '@short-link/shared';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '@/guards/jwt-auth.guard';
+import { LoginDto } from './dto/login.dto';
 
 /**
  * 认证相关接口。
@@ -14,9 +16,13 @@ export class AuthController {
 
   /**
    * 用户登录
+   *
+   * 限流：单 IP 每分钟最多 5 次，防止密码暴力破解。
    */
   @Post('login')
-  async login(@Body() body: LoginRequest): Promise<LoginResponse> {
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async login(@Body() body: LoginDto): Promise<LoginResponse> {
     return this.authService.login(body);
   }
 
