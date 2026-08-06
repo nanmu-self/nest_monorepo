@@ -18,7 +18,7 @@ import {
 } from '@short-link/ui';
 
 import { login } from '@/api/auth';
-import { auth } from '@/router/guards';
+import { auth } from '@/lib/auth';
 
 interface FieldErrors {
   email?: string;

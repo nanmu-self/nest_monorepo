@@ -1,5 +1,6 @@
 import ReactHook from 'alova/react';
 import { createHttp } from '@short-link/shared/http';
+import { auth } from '@/lib/auth';
 
 /**
  * 后台管理应用的共享 Alova 实例。
@@ -10,9 +11,6 @@ import { createHttp } from '@short-link/shared/http';
 export const http = createHttp({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api/v1',
   statesHook: ReactHook,
-  getToken: () => localStorage.getItem('token'),
-  onUnauthorized: () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  },
+  getToken: auth.getToken,
+  onUnauthorized: auth.handleUnauthorized,
 });

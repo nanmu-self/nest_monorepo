@@ -91,3 +91,6 @@ out
 **/packages/*/src/**/*.js
 **/packages/*/src/**/*.js.map
 **/packages/*/src/**/*.d.ts
+
+# --- CodeGraph (local code intelligence index, do not commit) ---
+.codegraph/

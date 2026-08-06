@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutGrid, Link2, LogOut, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react';
 
-import { auth } from '@/router/guards';
+import { auth } from '@/lib/auth';
 
 /** 导航项集中声明：侧栏渲染与顶栏标题共用同一份数据源 */
 const NAV_ITEMS = [

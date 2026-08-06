@@ -1,5 +1,6 @@
 import type { LoginRequest, LoginResponse, UserDTO } from '@short-link/shared';
 import { http } from '@/lib/http';
+import { auth } from '@/lib/auth';
 
 /**
  * 用户登录
@@ -16,9 +17,8 @@ export function getProfile() {
 }
 
 /**
- * 退出登录
+ * 退出登录：清 token，跳转由调用方处理
  */
 export function logout() {
-  localStorage.removeItem('token');
-  // 触发页面跳转由调用方处理
+  auth.clear();
 }
