@@ -17,13 +17,15 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T
   intercept(_context: ExecutionContext, next: CallHandler<T>): Observable<ApiResponse<T>> {
     return next.handle().pipe(
       map((data) => {
-        // 已是封套形状则原样返回，避免二次包装
+        // 已是封套形状则原样返回，避免二次包装。
+        // duck-typing 收紧到 code:number + message:string，降低业务对象
+        // 恰好含 code/data/message 三字段时的误判概率。
         if (
           data &&
           typeof data === 'object' &&
-          'code' in data &&
-          'data' in data &&
-          'message' in data
+          typeof (data as Record<string, unknown>).code === 'number' &&
+          typeof (data as Record<string, unknown>).message === 'string' &&
+          'data' in data
         ) {
           return data as ApiResponse<T>;
         }

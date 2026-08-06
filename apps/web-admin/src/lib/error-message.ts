@@ -17,8 +17,14 @@ const BIZ_CODE_MESSAGES: Partial<Record<number, string>> = {
 /**
  * 把任意异常解析为可展示给用户的文案。
  *
- * 优先级：业务码映射 > 服务端 message > 状态码兜底 > fallback。
- * 业务码优先意味着新增一个码只需在 BIZ_CODE_MESSAGES 里登记，
+ * 优先级：业务码映射 > 状态码兜底 > 服务端 message > fallback。
+ *
+ * 状态码优先于 message：网络错误（status=0）的 message 是英文
+ * "Failed to fetch"，5xx 的 message 可能是内部堆栈原文，都不可直接
+ * 展示给用户，必须先转成中文兜底文案；只有状态码不属于这两类时
+ * 才回落到服务端 message。
+ *
+ * 业务码映射仍是最优先：新增一个码只需在 BIZ_CODE_MESSAGES 里登记，
  * 而不是在各个 catch 分支里堆 if。
  *
  * @param err 捕获到的未知异常
@@ -35,11 +41,6 @@ export function resolveErrorMessage(err: unknown, fallback = '操作失败，请
     if (mapped) return mapped;
   }
 
-  // 服务端已给出可读消息
-  if (err.message) {
-    return err.message;
-  }
-
   // status 0 是约定的网络错误（fetch 本身失败）
   if (err.status === 0) {
     return '网络连接失败，请检查网络后重试';
@@ -47,6 +48,11 @@ export function resolveErrorMessage(err: unknown, fallback = '操作失败，请
 
   if (err.status >= 500) {
     return '服务暂时不可用，请稍后重试';
+  }
+
+  // 服务端已给出可读消息（4xx 多数有可读 message）
+  if (err.message) {
+    return err.message;
   }
 
   return fallback;

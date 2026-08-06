@@ -5,6 +5,7 @@ import type { UserDTO, LoginRequest, LoginResponse } from '@short-link/shared';
 import { ErrorCode } from '@short-link/shared';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BizException } from '@/common/biz-exception';
+import { mapUserToDTO } from '@/users/user.mapper';
 import { JWT_EXPIRES_IN } from '@/config/env';
 
 @Injectable()
@@ -53,7 +54,7 @@ export class AuthService {
 
     return {
       access_token,
-      user: this.toUserDTO(user),
+      user: mapUserToDTO(user),
       expires_in: JWT_EXPIRES_IN,
     };
   }
@@ -78,33 +79,6 @@ export class AuthService {
       );
     }
 
-    return this.toUserDTO(user);
-  }
-
-  /**
-   * 创建用户（密码自动哈希）
-   */
-  async createUser(data: { email: string; password: string }) {
-    const password_hash = await bcrypt.hash(data.password, 10);
-    return this.prisma.user.create({
-      data: {
-        email: data.email,
-        password_hash,
-      },
-    });
-  }
-
-  private toUserDTO(user: {
-    id: number;
-    email: string;
-    created_at: Date;
-    updated_at: Date;
-  }): UserDTO {
-    return {
-      id: user.id,
-      email: user.email,
-      created_at: user.created_at.toISOString(),
-      updated_at: user.updated_at.toISOString(),
-    };
+    return mapUserToDTO(user);
   }
 }
