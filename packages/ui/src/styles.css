@@ -4,8 +4,9 @@
  * 消费方通过 @import '@short-link/ui/styles.css' 引入，
  * 生成 bg-background / text-foreground / bg-primary ... 等工具类。
  *
- * 品牌色与 @short-link/config-tailwind 的 brand 色阶保持一致（Apple 系统蓝），
- * 确保 shadcn 组件（bg-primary）与页面其他部分（bg-brand-500）视觉统一。
+ * 主题：shadcn 默认黑白配色（slate 中性色阶），主色用纯黑而非默认蓝，
+ * 与 web-admin 的 apple-card、暖灰 sidebar 通过单色 + 透明度分层配合，
+ * 避免彩色 primary 跟整体调性冲突。
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -18,9 +19,9 @@
 :root {
   --radius: 0.625rem;
 
-  /* 基础色 */
-  --background: #f5f5f7;
-  --foreground: #4a5162;
+  /* 基础色 —— shadcn 默认（白底 + 冷调深灰文本） */
+  --background: #ffffff;
+  --foreground: #0f172a;
 
   /* 卡片 / 弹层 */
   --card: #ffffff;
@@ -28,29 +29,29 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
 
-  /* 主色：Apple 系统蓝，与 config-tailwind brand-500 一致 */
-  --primary: #0071e3;
+  /* 主色：纯黑，与"shadcn 黑白配色"主题一致 */
+  --primary: #0f172a;
   --primary-foreground: #ffffff;
 
-  /* 次级 */
+  /* 次级 —— shadcn slate-100 */
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
 
   /* 静默文本 / 背景 */
   --muted: #f1f5f9;
-  --muted-foreground: #94a3b8;
+  --muted-foreground: #64748b;
 
   /* 强调背景（hover 等，shadcn 语义） */
   --accent: #f1f5f9;
   --accent-foreground: #0f172a;
 
-  /* 危险色 */
+  /* 危险色 —— shadcn 默认 red-500 */
   --destructive: #ef4444;
 
   /* 边框 / 输入 / 焦点环 */
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #0071e3;
+  --ring: #0f172a;
 }
 
 .dark {
@@ -62,7 +63,7 @@
   --popover: #1e293b;
   --popover-foreground: #f8fafc;
 
-  --primary: #4b94f8;
+  --primary: #f8fafc;
   --primary-foreground: #0f172a;
 
   --secondary: #334155;
@@ -78,7 +79,7 @@
 
   --border: #334155;
   --input: #334155;
-  --ring: #4b94f8;
+  --ring: #f8fafc;
 }
 
 /* 将语义变量映射为 Tailwind 工具类：bg-background / text-primary / border-border ... */

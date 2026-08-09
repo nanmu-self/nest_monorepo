@@ -6,6 +6,10 @@
 /* @short-link/ui 的 styles.css 已通过 @source 声明自身组件文件位置，
    Tailwind 会自动扫描 dist 中的 cva 类名字符串，无需在此跨包引用路径。 */
 
+/* 扫描本应用源码：dashboard 的 sm:grid-cols-3 / 业务页里的 grid-cols-*
+   等工具类都在本应用 src 下，需要在消费方显式声明。 */
+@source './**/*.{ts,tsx}';
+
 /* ---------- web-admin 专属设计 token ---------- */
 @theme {
   /* 自定义缓动曲线：内置 ease/ease-out 不够劲，统一提到 theme 复用
@@ -29,13 +33,15 @@
     @apply text-[28px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#1d1d1f] mb-6;
   }
 
-  /* 覆盖共享包的同名 shortcut：Apple 风格全圆角按钮 + 按压反馈
-     共享包不动（其他 app 可能依赖原行为），web-admin 内自带手感 */
+  /* 覆盖共享包的同名 shortcut：shadcn 黑白风格 + 按压反馈
+     共享包不动（其他 app 可能依赖原行为，brand-* 仍保留品牌色系），
+     web-admin 内自带的快捷类统一走黑白：主按钮纯黑，幽灵按钮浅灰。
+     颜色与 packages/ui 的 --primary / --secondary token 对齐，保持一套主题。 */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-brand-500 text-white text-[15px] font-medium hover:bg-brand-600 transition-[transform,background-color] duration-160 ease-out-strong active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-[15px] font-medium hover:bg-primary/90 transition-[transform,background-color] duration-160 ease-out-strong active:scale-[0.97];
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[#e8e8ed] text-[#1d1d1f] text-[15px] font-medium hover:bg-[#dedee3] transition-[transform,background-color,color] duration-160 ease-out-strong active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-secondary text-secondary-foreground text-[15px] font-medium hover:bg-secondary/80 transition-[transform,background-color,color] duration-160 ease-out-strong active:scale-[0.97];
   }
 
   /* Apple 式卡片：无硬边框，柔和投影分层 */
@@ -63,9 +69,11 @@
     --bg: #f5f5f7;
     --panel: #ffffff;
     --border: #d2d2d7;
-    --action: #0071e3;
-    --action-hover: #0060c9;
-    --danger: #ff3b30;
+    /* 主题色：与 packages/ui 的 --primary 保持一致（shadcn 黑白风）。
+       旧值 #0071e3 是 Apple 系统蓝，已与 shadcn 黑白主题冲突。 */
+    --action: #0f172a;
+    --action-hover: #1e293b;
+    --danger: #ef4444;
 
     /* 动效时长 token：UI 硬上限 300ms */
     --duration-press: 160ms;
@@ -134,12 +142,17 @@
   button:hover {
     background: var(--action-hover);
   }
-  /* 按压反馈：任何可按压元素都必须告诉用户“我听到了” */
-  button:active {
+  /* 按压反馈：任何可按压元素都必须告诉用户“我听到了”。
+     :not(:disabled) 避免禁用按钮被按下时也缩小（disabled 本身就告诉用户"现在不能按"） */
+  button:not(:disabled):active {
     transform: scale(0.97);
   }
   button:disabled {
-    opacity: 0.5;
+    /* shadcn 风格：直接换成中性灰，避开"半透明主题色"出脏色的问题。
+       用 secondary token（slate-100）做底，深灰字，保持视觉统一。 */
+    background: var(--secondary);
+    color: var(--muted-foreground);
+    opacity: 1;
     cursor: not-allowed;
   }
 }
