@@ -52,6 +52,7 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 - Vite dev server proxies `/api` to `VITE_SERVER_URL` (default `http://localhost:3000`); frontend code should always call `/api/...`, never a hardcoded host.
 - React 19 with the React Compiler enabled via `@rolldown/plugin-babel` + `babel-plugin-react-compiler` (see `vite.config.ts`). tsconfig sets `erasableSyntaxOnly`, `verbatimModuleSyntax`, `noUnusedLocals/Parameters` - expect the compiler to reject non-erasable TS syntax (enum bodies, namespaces, param-properties in non-decorator classes) and unused bindings.
 - HTTP client is `src/lib/http.ts`, an Alova instance built from `createHttp` in the shared package. Default `baseURL` is `/api/v1`, overridable with `VITE_API_BASE_URL`.
+- **全局 button 样式陷阱：** `src/index.css` 的 `@layer base` 给所有原生 `<button>` 设了黑底白字 + `padding: 10px 22px` + `border-radius: 980px`（Apple 风格主按钮）。图标按钮（只有图标、无文字的小按钮）不能直接用裸 `<button>` 加 Tailwind utilities 覆盖——`button:hover` 的 `background` 声明会干扰 `hover:bg-*`，`padding` 会撑变形。正确做法：给图标按钮加 `.icon-btn` 类（定义在 `@layer components`，已覆盖 padding/background/color/hover），危险操作用 `.icon-btn-danger`。参考 `AppLayout` 的 `.btn-sidebar-toggle` / `.btn-logout` 也是同样的 components 层覆盖模式。
 
 ### Shared package (`packages/shared`)
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Link2, LogOut, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react';
+import { LayoutGrid, Link2, LogOut, PanelLeftClose, PanelLeftOpen, Users, CloudUpload } from 'lucide-react';
 
 import { auth } from '@/lib/auth';
 
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/', label: '仪表盘', icon: LayoutGrid, end: true },
   { to: '/short-links', label: '短链', icon: Link2, end: false },
   { to: '/admins', label: '管理员', icon: Users, end: false },
+  { to: '/storage', label: '七牛存储', icon: CloudUpload, end: false },
 ] as const;
 
 /** 折叠状态持久化 key：用户偏好跨会话保留 */

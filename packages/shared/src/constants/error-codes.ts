@@ -7,6 +7,7 @@
  *   10100–10199 认证/授权
  *   20000–20099 短链
  *   20100–20199 用户
+ *   20200–20299 存储/文件
  *
  * HTTP 状态码不进此枚举，它们走 HttpError.status。
  */
@@ -30,6 +31,11 @@ export const ErrorCode = {
   // ---------- 用户 20100–20199 ----------
   USER_NOT_FOUND: 20100,
   USER_EMAIL_EXISTS: 20101,
+
+  // ---------- 存储/文件 20200–20299 ----------
+  STORAGE_TOKEN_FAILED: 20200,
+  STORAGE_FILE_NOT_FOUND: 20201,
+  STORAGE_DELETE_FAILED: 20202,
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

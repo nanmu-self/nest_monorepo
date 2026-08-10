@@ -60,6 +60,13 @@ export const router = createBrowserRouter([
           return { Component: mod.default };
         },
       },
+      {
+        path: 'storage',
+        lazy: async () => {
+          const mod = await import('@/pages/storage');
+          return { Component: mod.default };
+        },
+      },
       // 404 兜底
       {
         path: '*',

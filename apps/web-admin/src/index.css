@@ -51,6 +51,32 @@
       0 0 0 1px rgba(0, 0, 0, 0.03),
       0 2px 12px rgba(0, 0, 0, 0.05);
   }
+
+  /* 图标按钮基类：覆盖 base 层 button 的 padding/background/color，
+     让 32×32 的纯图标按钮不被撑大、不继承黑底白字。
+     放在 components 层确保优先级高于 base 层的裸 button 选择器。
+     用法：className="icon-btn shrink-0 flex-center w-8 h-8 rounded-full transition-colors"
+     危险操作（删除等）追加 .icon-btn-danger。
+     详见 CLAUDE.md「全局 button 样式陷阱」。 */
+  .icon-btn {
+    padding: 0;
+    background: transparent;
+    color: var(--text-muted);
+  }
+  .icon-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-h);
+  }
+  .icon-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--danger);
+  }
+  .icon-btn:disabled {
+    background: transparent;
+    color: var(--text-muted);
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 /* ---------- base 层：元素重置与默认外观 ----------

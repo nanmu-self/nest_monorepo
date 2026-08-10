@@ -147,6 +147,73 @@ function requireJwtSecret(): string {
 
 export const JWT_SECRET = requireJwtSecret();
 
+// ---------- 七牛云对象存储 ----------
+
+/** 七牛存储区域标识（与 qiniu SDK 的 zone 常量一一对应） */
+export const VALID_QINIU_REGIONS = ['z0', 'z1', 'z2', 'na0', 'as0', 'cn-east-2'] as const;
+export type QiniuRegion = (typeof VALID_QINIU_REGIONS)[number];
+
+/**
+ * 解析七牛存储区域。
+ *
+ * 区域标识与七牛 SDK zone 常量的对应：
+ *   z0       华东-浙江
+ *   z1       华北
+ *   z2       华南
+ *   na0      北美
+ *   as0      东南亚
+ *   cn-east-2 华东-浙江2
+ */
+function parseQiniuRegion(): QiniuRegion {
+  const raw = process.env.QINIU_REGION;
+  if (!raw) {
+    throw new Error(
+      `QINIU_REGION 未配置：请在 apps/server/.env 中设置存储区域（${VALID_QINIU_REGIONS.join(' / ')} 之一）`,
+    );
+  }
+  if (!VALID_QINIU_REGIONS.includes(raw as QiniuRegion)) {
+    throw new Error(`QINIU_REGION="${raw}" 不合法，必须是 ${VALID_QINIU_REGIONS.join(' / ')} 之一`);
+  }
+  return raw as QiniuRegion;
+}
+
+/**
+ * 解析七牛访问域名。
+ *
+ * 允许带或不带协议头（http:// / https://），统一去除末尾斜杠，
+ * 供 getPublicUrl 拼接 `${domain}/${key}` 使用。
+ */
+function parseQiniuDomain(): string {
+  const raw = process.env.QINIU_DOMAIN?.trim();
+  if (!raw) {
+    throw new Error('QINIU_DOMAIN 未配置：请在 apps/server/.env 中设置存储空间绑定的访问域名');
+  }
+  // 去掉末尾斜杠，避免拼接出双斜杠
+  return raw.replace(/\/+$/, '');
+}
+
+function requireQiniuKey(name: 'QINIU_ACCESS_KEY' | 'QINIU_SECRET_KEY'): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} 未配置：请在 apps/server/.env 中设置七牛云 ${name}`);
+  }
+  return value;
+}
+
+function requireQiniuBucket(): string {
+  const bucket = process.env.QINIU_BUCKET;
+  if (!bucket) {
+    throw new Error('QINIU_BUCKET 未配置：请在 apps/server/.env 中设置七牛云存储空间名');
+  }
+  return bucket;
+}
+
+export const QINIU_ACCESS_KEY = requireQiniuKey('QINIU_ACCESS_KEY');
+export const QINIU_SECRET_KEY = requireQiniuKey('QINIU_SECRET_KEY');
+export const QINIU_BUCKET = requireQiniuBucket();
+export const QINIU_REGION = parseQiniuRegion();
+export const QINIU_DOMAIN = parseQiniuDomain();
+
 // ---------- 业务常量 ----------
 
 /** Token 有效期（秒），JwtModule 与登录响应共用此值，避免漂移 */
