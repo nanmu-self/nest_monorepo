@@ -161,23 +161,22 @@ export class QiniuService {
    * 从完整访问 URL 中解析出文件 key。
    *
    * 用于删除场景：前端持有的是完整 URL，后端需提取 key 才能调用删除。
-   * 基于 QINIU_DOMAIN 前缀剥离；若 URL 不以配置域名开头则原样返回
-   * 去除前导斜杠后的 path 部分（容错，避免误删意外路径）。
+   * 仅当 URL 域名与配置域名匹配时才 decode（认为它就是本服务的 URL）；
+   * 不匹配则原样返回 path，避免误把外部 URL 当作自有 key 删除时
+   * 因解码出错（如 `%2F` 之类边界）而留下意外结果。
    */
   parseKeyFromUrl(url: string): string {
-    // 去除协议头与域名前缀
-    const domainWithoutProtocol = QINIU_DOMAIN.replace(/^https?:\/\//, '');
     const match = url.match(/^https?:\/\/[^/]+\/(.+)$/);
     if (!match) {
       // 不符合 URL 格式，当作 key 直接处理
       return url.replace(/^\/+/, '');
     }
     const path = match[1];
-    // 若 URL 域名与配置域名一致，path 即为 key
+    const domainWithoutProtocol = QINIU_DOMAIN.replace(/^https?:\/\//, '');
     if (url.includes(domainWithoutProtocol)) {
       return decodeURIComponent(path);
     }
-    return decodeURIComponent(path);
+    return path;
   }
 
   /**

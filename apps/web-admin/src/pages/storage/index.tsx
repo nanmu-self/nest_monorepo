@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LoaderCircle, UploadCloud, Trash2, Link as LinkIcon, Copy, Check } from 'lucide-react';
 import * as qiniu from 'qiniu-js';
 import type { UploadTokenResponse } from '@short-link/shared';
@@ -55,6 +55,15 @@ export default function StoragePage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [deleteInput, setDeleteInput] = useState('');
+
+  // 组件卸载时取消未完成的上传，避免 SDK 内部 observable 持续触发 setState
+  // （组件已卸载，setState 会触发 React 警告，并可能泄漏订阅的内部资源）。
+  useEffect(
+    () => () => {
+      subscriptionRef.current?.unsubscribe();
+    },
+    [],
+  );
 
   /**
    * 选择文件后用 qiniu-js SDK 直传到七牛。
