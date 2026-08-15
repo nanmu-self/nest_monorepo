@@ -8,7 +8,9 @@ pnpm workspace monorepo for a short-link service. Runtime targets Node ≥ 22.12
 
 - `apps/server` - NestJS 11 backend (`@short-link/server`), SWC-compiled, Prisma 7 + PostgreSQL.
 - `apps/web-admin` - React 19 admin UI (`@short-link/web-admin`) built with Vite 8 and the React Compiler Babel plugin.
-- `packages/shared` - `@short-link/shared`, published via tsup + tsc into `dist/` and consumed as `workspace:*`. Uses **subpath exports** to keep framework-specific code isolated: root (`@short-link/shared`) exports only the framework-agnostic `HttpError`; `@short-link/shared/http` exports the alova-based `createHttp` client. Server-side code that only needs shared types will not pull alova into its module graph.
+- `packages/shared` - `@short-link/shared`, published via tsup + tsc into `dist/` and consumed as `workspace:*`. Uses **subpath exports** to keep framework-specific code isolated: root (`@short-link/shared`) exports framework-agnostic types/classes (`HttpError`, `ErrorCode` enum, API DTO types — `UserDTO`, `LoginRequest`, `LoginResponse`, `ApiResponse`, `UploadTokenResponse`); `@short-link/shared/http` exports the alova-based `createHttp` client. Server-side code that only needs shared types will not pull alova into its module graph.
+- `packages/config-tailwind` - `@short-link/config-tailwind`, Tailwind 4 design tokens (`@theme` + `@layer components`) bundled via tsup. Consumed as `@import '@short-link/config-tailwind/styles.css'` from the consumer's CSS entry; has no JS API beyond the empty `index.ts` placeholder.
+- `packages/ui` - `@short-link/ui`, shadcn-style components (Button, Input, Card, Field, Label, cn()) bundled via tsup. `lucide-react` and `react` are peer dependencies — consumers must install them themselves.
 
 ## Common commands
 
@@ -34,15 +36,15 @@ There is no test runner configured; do not fabricate a `pnpm test` command.
 
 ### TypeScript Project References
 
-The root `tsconfig.json` has empty `files` and only lists references to `packages/shared`, `apps/server`, `apps/web-admin`. Every leaf project extends `tsconfig.base.json`, sets `composite: true`, and writes its build-info file under `node_modules/.tmp/`. When adding a workspace, add it to `tsconfig.json` references AND to `pnpm-workspace.yaml`, otherwise `pnpm typecheck` will not see it.
+The root `tsconfig.json` has empty `files` and only lists references to `packages/shared`, `packages/config-tailwind`, `packages/ui`, `apps/server`, `apps/web-admin`. Every leaf project extends `tsconfig.base.json`, sets `composite: true`, and writes its build-info file under `node_modules/.tmp/`. When adding a workspace, add it to `tsconfig.json` references AND to `pnpm-workspace.yaml`, otherwise `pnpm typecheck` will not see it.
 
 Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.json`, `apps/server/.swcrc`, `apps/web-admin/tsconfig.app.json`, `apps/web-admin/vite.config.ts`). Match this in new subprojects if you want the alias to resolve at build AND runtime.
 
 ### Server (`apps/server`)
 
-- Entry is `src/main.ts`, which loads `dotenv/config` before doing anything else and delegates to `setupApp()` in `src/bootstrap.ts`. `setupApp` sets global prefix `api`, URI versioning with `defaultVersion: ['1', '2']` (so any route without `@Version()` is served under both `/api/v1` and `/api/v2`), CORS from `CORS_ORIGIN` (comma-split), and a `ValidationPipe` with `whitelist`, `transform`, `forbidNonWhitelisted`. Reuse `setupApp` if you add a second entry (e.g. tests).
+- Entry is `src/main.ts`, which delegates to `setupApp()` in `src/bootstrap.ts`. **dotenv is NOT loaded here** — `@/config/env` loads it on its own (top of the module), so anywhere that imports `@/config/env` triggers the load regardless of import order. `setupApp` sets global prefix `api`, URI versioning with `defaultVersion: ['1', '2']` (so any route without `@Version()` is served under both `/api/v1` and `/api/v2`), CORS from `CORS_ORIGIN` (comma-split), and a `ValidationPipe` with `whitelist`, `transform`, `forbidNonWhitelisted`. Reuse `setupApp` if you add a second entry (e.g. tests).
 - Nest CLI uses the SWC builder (`nest-cli.json` -> `.swcrc`) with `legacyDecorator` + `decoratorMetadata` for Nest DI. If you add server-side decorators or reflection, keep those flags aligned in both `.swcrc` and `apps/server/tsconfig.json`.
-- Prisma is wrapped in `PrismaModule` (`src/prisma/prisma.module.ts`), marked `@Global()`. It provides `DATABASE_URL` via a `useFactory` that throws if the env var is missing, then instantiates `PrismaService` with a `@prisma/adapter-pg` `PrismaPg` adapter. Consumers inject `PrismaService` directly; do not re-import `PrismaModule` into feature modules.
+- Prisma is wrapped in `PrismaModule` (`src/prisma/prisma.module.ts`), marked `@Global()`. It does **not** provide `DATABASE_URL` — that env var is validated at startup by `@/config/env` (which throws if missing) and `PrismaService` imports the already-validated `DATABASE_URL` constant. Consumers inject `PrismaService` directly; do not re-import `PrismaModule` into feature modules.
 - Prisma 7 does not read `env()` inside `schema.prisma`; the URL is injected via `apps/server/prisma.config.ts` (`datasource.url: process.env.DATABASE_URL`). Update that file if you need per-env connection logic.
 - Generated Prisma types live at `src/generated/prisma/` and are consumed via the `@/generated/prisma/client` path. Directory is gitignored - always run `pnpm install` (or `prisma generate` inside `apps/server`) after pulling schema changes.
 - Feature modules follow the `users/` shape: `*.module.ts`, `*.controller.ts`, `*.service.ts`, wired into `AppModule.imports`. Services select explicit columns to avoid leaking sensitive fields (see `UsersService.findAll` excluding `password_hash`) - preserve that habit when adding new tables.
@@ -57,7 +59,7 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 ### Shared package (`packages/shared`)
 
 - **Build:** `tsup` emits ESM into `dist/` (one entry per subpath), then `tsc -p tsconfig.build.json` emits the `.d.ts` files. tsup's built-in dts pipeline has trouble with multi-entry `composite: true` projects, so we split the responsibilities. `pnpm dev` runs `tsup --watch`, which is why the root `dev` script starts shared alongside server + web-admin - server/web-admin depend on `dist/` at runtime.
-- **Subpath exports:** `.` -> `dist/index.js` (framework-agnostic, currently just `HttpError`); `./http` -> `dist/http/index.js` (alova client). Add new subpaths by extending both `tsup.config.ts` `entry` and the `exports` map in `package.json`.
+- **Subpath exports:** `.` -> `dist/index.js` (framework-agnostic — `HttpError` class, `ErrorCode` enum, API DTO types); `./http` -> `dist/http/index.js` (alova client, also re-exports `HttpError` for convenience). Add new subpaths by extending both `tsup.config.ts` `entry` and the `exports` map in `package.json`.
 - **`createHttp(options)`** builds an Alova instance. It injects `Authorization: Bearer <token>` from `getToken()`, calls `onUnauthorized()` on 401, and normalises non-2xx responses and network failures into `HttpError { status, message, data }` before rethrowing. The server's `AllExceptionFilter` wraps errors into the same `{ code, message, data? }` envelope used by successful responses, and `extractErrorMessage` reads `message` from that body. The `statesHook` must be injected by the caller (`ReactHook` in `apps/web-admin`), so shared stays framework-neutral.
 - Consumers must declare `alova` (and their own states-hook adapter) as direct dependencies - shared no longer re-exports them at runtime.
 
