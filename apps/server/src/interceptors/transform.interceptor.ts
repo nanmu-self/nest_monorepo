@@ -27,7 +27,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T
           typeof (data as Record<string, unknown>).message === 'string' &&
           'data' in data
         ) {
-          return data as ApiResponse<T>;
+          return data as unknown as ApiResponse<T>;
         }
         return { code: 0, data, message: 'ok' };
       }),
