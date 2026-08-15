@@ -7,7 +7,7 @@ import { ArrowUpRight, Link2, MousePointerClick, Users } from 'lucide-react';
 const STATS = [
   { label: '短链总数', value: '—', icon: Link2 },
   { label: '总访问量', value: '—', icon: MousePointerClick },
-  { label: '管理员数', value: '—', icon: Users },
+  { label: '用户数', value: '—', icon: Users },
 ] as const;
 
 const QUICK_ACTIONS = [
@@ -17,9 +17,9 @@ const QUICK_ACTIONS = [
     to: '/short-links',
   },
   {
-    title: '管理管理员',
-    description: '查看和管理拥有后台访问权限的账号。',
-    to: '/admins',
+    title: '管理用户',
+    description: '查看和管理后台注册的用户账号。',
+    to: '/users',
   },
 ] as const;
 

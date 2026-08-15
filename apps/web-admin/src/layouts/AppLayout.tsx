@@ -8,7 +8,7 @@ import { auth } from '@/lib/auth';
 const NAV_ITEMS = [
   { to: '/', label: '仪表盘', icon: LayoutGrid, end: true },
   { to: '/short-links', label: '短链', icon: Link2, end: false },
-  { to: '/admins', label: '管理员', icon: Users, end: false },
+  { to: '/users', label: '用户', icon: Users, end: false },
   { to: '/storage', label: '七牛存储', icon: CloudUpload, end: false },
 ] as const;
 

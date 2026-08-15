@@ -3,13 +3,13 @@ import { Inbox, TriangleAlert } from 'lucide-react';
 
 import { getUsers } from '@/api/users';
 
-export default function AdminsPage() {
+export default function UsersPage() {
   // data 自动推断为 UserDTO[] | undefined（alova 从 Method 泛型推导）
   const { data, loading, error } = useRequest(getUsers);
 
   return (
     <section>
-      <h1 className="admin-page-header">管理员</h1>
+      <h1 className="admin-page-header">用户</h1>
 
       {loading && (
         <div className="apple-card py-16 text-center text-[14px] text-[#86868b]">加载中…</div>
@@ -63,8 +63,8 @@ export default function AdminsPage() {
           <div className="flex-center w-14 h-14 rounded-full bg-[#f5f5f7] text-[#86868b] mb-4">
             <Inbox size={24} />
           </div>
-          <p className="text-[15px] font-medium text-[#1d1d1f]">暂无管理员</p>
-          <p className="text-[13px] text-[#86868b] mt-1">添加的管理员账号会显示在这里。</p>
+          <p className="text-[15px] font-medium text-[#1d1d1f]">暂无用户</p>
+          <p className="text-[13px] text-[#86868b] mt-1">注册的用户账号会显示在这里。</p>
         </div>
       )}
     </section>

@@ -54,9 +54,9 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: 'admins',
+        path: 'users',
         lazy: async () => {
-          const mod = await import('@/pages/admins');
+          const mod = await import('@/pages/users');
           return { Component: mod.default };
         },
       },
