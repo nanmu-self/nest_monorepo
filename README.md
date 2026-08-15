@@ -298,13 +298,23 @@ A: 当前设置为 `private: true`，如需发布到 npm，移除 private 字段
 
 ## 路线图
 
-- [ ] 全局异常过滤器（统一错误响应格式）
-- [ ] 请求日志中间件
-- [ ] 健康检查端点
-- [ ] JWT 认证守卫
-- [ ] Rate Limiting 限流
-- [ ] Docker 支持
-- [ ] E2E 测试配置
+模板当前已落地：
+
+- [x] 全局异常过滤器：统一错误响应封套（`AllExceptionFilter` + `BizException`，业务码命名空间）
+- [x] JWT 认证守卫：区分 token 过期 / 无效 / 未携带三态
+- [x] Rate Limiting：`@nestjs/throttler` 接入，登录接口 5 req/min
+- [x] 统一 API 响应封套：`TransformInterceptor` 成功响应 `{ code: 0, data, message: 'ok' }`
+- [x] 业务错误码体系：10000+ 五位码，分段管理，前后端共享枚举
+- [x] 集中式环境变量校验：启动期硬校验，缺失 / 不合法 / 占位密钥直接崩溃
+
+尚未实现，按需自取：
+
+- [ ] 请求日志中间件（请求 / 响应 / 耗时）
+- [ ] 健康检查端点（`/health`）
+- [ ] Docker / docker-compose
+- [ ] E2E 测试（CLAUDE.md 明示当前无 test runner）
+
+注：当前模板不包含「短链业务」实现——`prisma/schema.prisma` 只有 `User` 表，路由 `/short-links` 是空状态页。请按业务需要自行扩展。
 
 ## 许可证
 
