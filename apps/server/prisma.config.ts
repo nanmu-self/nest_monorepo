@@ -7,6 +7,9 @@ export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
+    // 种子入口：Prisma 7 在 migrate dev / migrate reset / db seed 时调用。
+    // 跑 `prisma/seed.ts`（用 tsx 解析 TS）。
+    seed: 'tsx prisma/seed.ts',
   },
   datasource: {
     url: process.env['DATABASE_URL'],
