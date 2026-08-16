@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --topological --parallel --filter @short-link/shared --filter @short-link/config-tailwind --filter @short-link/ui --filter @short-link/server --filter @short-link/web-admin dev",
+    "predev": "pnpm --filter @short-link/shared --filter @short-link/config-tailwind --filter @short-link/ui build",
+    "dev": "pnpm --parallel --filter @short-link/shared --filter @short-link/config-tailwind --filter @short-link/ui --filter @short-link/server --filter @short-link/web-admin dev",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "prettier --write .",
