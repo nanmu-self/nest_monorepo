@@ -1,23 +1,38 @@
 {
-  "name": "app",
-  "version": "0.0.0",
-  "private": true,
+  "name": "create-nest-monorepo",
+  "version": "0.1.0",
+  "description": "Scaffold a pnpm + NestJS + React monorepo from this template",
+  "private": false,
   "type": "module",
   "packageManager": "pnpm@11.11.0",
   "engines": {
     "node": ">=22.12.0",
     "pnpm": ">=11"
   },
+  "bin": {
+    "create-nest-monorepo": "./scripts/create/bin.mjs",
+    "nest-monorepo": "./scripts/create/bin.mjs"
+  },
+  "files": [
+    "scripts/create",
+    "template",
+    "template.manifest.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "pnpm -r build",
-    "predev": "pnpm --filter @app/shared --filter @app/config-tailwind --filter @app/ui build",
+    "predev": "pnpm --parallel --filter @app/shared --filter @app/config-tailwind --filter @app/ui build",
     "dev": "pnpm --parallel --filter @app/shared --filter @app/config-tailwind --filter @app/ui --filter @app/server --filter @app/web-admin dev",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --build",
-    "clean": "node scripts/clean.mjs"
+    "clean": "node scripts/clean.mjs",
+    "create": "node scripts/create/bin.mjs",
+    "create:test": "node scripts/create/bin.mjs /tmp/cnm-test --force",
+    "create:dry": "node scripts/create/bin.mjs /tmp/cnm-dry --dry-run"
   },
   "devDependencies": {
     "oxlint": "^1.0.0",

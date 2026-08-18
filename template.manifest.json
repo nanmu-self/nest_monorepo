@@ -1,0 +1,41 @@
+{
+  "// 用途": "create-nest-monorepo 模板清单。CLI 按本清单把仓库内容拷到目标目录，并对标注为 text 的文件做 {{var}} 占位符替换。",
+  "// 维护": "改模板时,新增/删除文件要同步更新本清单。apps/ 与 packages/ 走整体目录拷贝，不列在内。",
+  "// aliases": "源码里写死的别名映射。在 {{var}} 替换之前进行。所以别名的右边能引用占位符，如 @app/ → {{scope}}/",
+
+  "aliases": [
+    ["@app/", "{{scope}}/"]
+  ],
+
+  "files": [
+    { "src": ".editorconfig", "kind": "text" },
+    { "src": ".gitattributes", "kind": "text" },
+    { "src": ".gitignore", "kind": "text" },
+    { "src": ".npmrc", "kind": "text" },
+    { "src": ".oxlintrc.json", "kind": "text" },
+    { "src": ".prettierignore", "kind": "text" },
+    { "src": ".prettierrc.json", "kind": "text" },
+    { "src": "docker-compose.yml", "kind": "text" },
+    { "src": "pnpm-workspace.yaml", "kind": "text" },
+    { "src": "tsconfig.base.json", "kind": "text" },
+    { "src": "tsconfig.json", "kind": "text" },
+    { "src": "LICENSE", "kind": "text" },
+    { "src": "README.md", "kind": "text" },
+    { "src": "template/package.json", "kind": "text", "dest": "package.json" },
+    { "src": "scripts/clean.mjs", "kind": "text" }
+  ],
+
+  "dirs": [
+    { "src": "template/apps", "dest": "apps" },
+    { "src": "template/packages", "dest": "packages" }
+  ],
+
+  "skipInDirs": [
+    "node_modules",
+    ".git",
+    ".codegraph",
+    "dist",
+    ".tsbuildinfo",
+    "*.tsbuildinfo"
+  ]
+}
