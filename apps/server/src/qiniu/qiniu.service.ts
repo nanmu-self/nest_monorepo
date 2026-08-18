@@ -3,14 +3,7 @@ import * as qiniu from 'qiniu';
 import type { UploadTokenResponse } from '@short-link/shared';
 import { ErrorCode } from '@short-link/shared';
 import { BizException } from '@/common/biz-exception';
-import {
-  QINIU_ACCESS_KEY,
-  QINIU_SECRET_KEY,
-  QINIU_BUCKET,
-  QINIU_REGION,
-  QINIU_DOMAIN,
-  type QiniuRegion,
-} from '@/config/env';
+import { QINIU_CONFIG, type QiniuRegion } from '@/config/env';
 
 /**
  * 区域标识到七牛 SDK zone 常量的映射。
@@ -19,11 +12,11 @@ import {
  * 选错区域会导致删除/查询请求指向错误的服务节点（虽不致命但会失败）。
  */
 const ZONE_MAP: Record<QiniuRegion, qiniu.conf.Zone> = {
-  'z0': qiniu.zone.Zone_z0, // 华东-浙江
-  'z1': qiniu.zone.Zone_z1, // 华北
-  'z2': qiniu.zone.Zone_z2, // 华南
-  'na0': qiniu.zone.Zone_na0, // 北美
-  'as0': qiniu.zone.Zone_as0, // 东南亚
+  z0: qiniu.zone.Zone_z0, // 华东-浙江
+  z1: qiniu.zone.Zone_z1, // 华北
+  z2: qiniu.zone.Zone_z2, // 华南
+  na0: qiniu.zone.Zone_na0, // 北美
+  as0: qiniu.zone.Zone_as0, // 东南亚
   'cn-east-2': qiniu.zone.Zone_cn_east_2, // 华东-浙江2
 };
 
@@ -31,11 +24,12 @@ const ZONE_MAP: Record<QiniuRegion, qiniu.conf.Zone> = {
 const DEFAULT_TOKEN_EXPIRES = 3600;
 
 /**
- * 七牛云对象存储服务。
+ * 七牛云对象存储服务（可选功能）。
  *
  * 封装客户端直传所需的凭证签发、文件删除、访问 URL 生成等操作。
- * 配置（AK/SK/Bucket/Region/Domain）由 @/config/env 在启动时校验，
- * 此处直接使用已校验的常量，无需运行时再判空。
+ * QINIU_CONFIG 由 @/config/env 解析：五个 QINIU_* 变量全部未配置时为 null，
+ * 服务正常启动，但所有方法调用都会抛出 STORAGE_NOT_CONFIGURED（503）--
+ * 不用对象存储的使用者无需伪造凭证即可跑起整个模板。
  *
  * 所有方法失败时抛出 BizException，携带 STORAGE_* 业务错误码，
  * 由 AllExceptionFilter 统一封套为错误响应。
@@ -44,13 +38,36 @@ const DEFAULT_TOKEN_EXPIRES = 3600;
 export class QiniuService {
   private readonly logger = new Logger(QiniuService.name);
 
-  private readonly mac: qiniu.auth.digest.Mac;
-  private readonly bucketManager: qiniu.rs.BucketManager;
+  /** 配置存在时的 SDK 客户端；功能未启用时为 null */
+  private readonly mac: qiniu.auth.digest.Mac | null;
+  private readonly bucketManager: qiniu.rs.BucketManager | null;
 
   constructor() {
-    this.mac = new qiniu.auth.digest.Mac(QINIU_ACCESS_KEY, QINIU_SECRET_KEY);
-    const config = new qiniu.conf.Config({ zone: ZONE_MAP[QINIU_REGION] });
-    this.bucketManager = new qiniu.rs.BucketManager(this.mac, config);
+    if (QINIU_CONFIG) {
+      this.mac = new qiniu.auth.digest.Mac(QINIU_CONFIG.accessKey, QINIU_CONFIG.secretKey);
+      const config = new qiniu.conf.Config({ zone: ZONE_MAP[QINIU_CONFIG.region] });
+      this.bucketManager = new qiniu.rs.BucketManager(this.mac, config);
+    } else {
+      this.mac = null;
+      this.bucketManager = null;
+    }
+  }
+
+  /**
+   * 功能未启用时抛出 503，附带明确的开启指引；已启用则返回非空配置。
+   *
+   * 抛在业务方法入口而非 constructor：构造期抛异常会让整个 AppModule 初始化失败，
+   * 与“未启用可正常启动”的设计目标冲突。
+   */
+  private requireConfig() {
+    if (!QINIU_CONFIG || !this.mac || !this.bucketManager) {
+      throw new BizException(
+        ErrorCode.STORAGE_NOT_CONFIGURED,
+        '对象存储未启用：请在 apps/server/.env 中配置全部五个 QINIU_* 环境变量后重启',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+    return QINIU_CONFIG;
   }
 
   /**
@@ -64,20 +81,21 @@ export class QiniuService {
    * 否则为 `bucket`（允许客户端自定 key）。
    */
   createUploadToken(key?: string, expires: number = DEFAULT_TOKEN_EXPIRES): UploadTokenResponse {
+    this.requireConfig();
     try {
-      const scope = key ? `${QINIU_BUCKET}:${key}` : QINIU_BUCKET;
+      const scope = key ? `${QINIU_CONFIG!.bucket}:${key}` : QINIU_CONFIG!.bucket;
       const putPolicy = new qiniu.rs.PutPolicy({
         scope,
         expires,
       });
-      const token = putPolicy.uploadToken(this.mac);
+      const token = putPolicy.uploadToken(this.mac!);
 
       return {
         token,
-        bucket: QINIU_BUCKET,
-        domain: QINIU_DOMAIN,
+        bucket: QINIU_CONFIG!.bucket,
+        domain: QINIU_CONFIG!.domain,
         expires_in: expires,
-        region: QINIU_REGION,
+        region: QINIU_CONFIG!.region,
         ...(key !== undefined && { key }),
       };
     } catch (error) {
@@ -104,10 +122,11 @@ export class QiniuService {
    * 便于前端区分“删除成功”与“资源已不存在”。
    */
   async deleteFile(key: string): Promise<void> {
+    this.requireConfig();
     let resp: qiniu.httpc.ResponseWrapper<void>;
     try {
       // delete 已返回 Promise（callback 可选），直接 await
-      resp = await this.bucketManager.delete(QINIU_BUCKET, key);
+      resp = await this.bucketManager!.delete(QINIU_CONFIG!.bucket, key);
     } catch (error) {
       // 网络层异常（DNS、连接超时等），非七牛业务错误
       this.logger.error(
@@ -131,11 +150,7 @@ export class QiniuService {
     this.logger.warn(`删除七牛文件失败 key=${key} status=${statusCode} code=${errorCode}`);
 
     if (statusCode === 612 || errorCode === '612') {
-      throw new BizException(
-        ErrorCode.STORAGE_FILE_NOT_FOUND,
-        '文件不存在',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new BizException(ErrorCode.STORAGE_FILE_NOT_FOUND, '文件不存在', HttpStatus.NOT_FOUND);
     }
 
     throw new BizException(
@@ -154,7 +169,7 @@ export class QiniuService {
   getPublicUrl(key: string): string {
     // encodeURIComponent 会编码 /，需还原以保持目录层级
     const encodedKey = encodeURIComponent(key).replace(/%2F/g, '/');
-    return `${QINIU_DOMAIN}/${encodedKey}`;
+    return `${this.requireConfig().domain}/${encodedKey}`;
   }
 
   /**
@@ -166,13 +181,14 @@ export class QiniuService {
    * 因解码出错（如 `%2F` 之类边界）而留下意外结果。
    */
   parseKeyFromUrl(url: string): string {
+    const config = this.requireConfig();
     const match = url.match(/^https?:\/\/[^/]+\/(.+)$/);
     if (!match) {
       // 不符合 URL 格式，当作 key 直接处理
       return url.replace(/^\/+/, '');
     }
     const path = match[1];
-    const domainWithoutProtocol = QINIU_DOMAIN.replace(/^https?:\/\//, '');
+    const domainWithoutProtocol = config.domain.replace(/^https?:\/\//, '');
     if (url.includes(domainWithoutProtocol)) {
       return decodeURIComponent(path);
     }

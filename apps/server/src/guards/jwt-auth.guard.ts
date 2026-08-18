@@ -41,11 +41,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     // 其他认证错误（未携带 Token、策略返回空用户等）
     if (err || !user) {
-      throw new BizException(
-        ErrorCode.AUTH_TOKEN_INVALID,
-        '请先登录',
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new BizException(ErrorCode.AUTH_TOKEN_INVALID, '请先登录', HttpStatus.UNAUTHORIZED);
     }
 
     return user;

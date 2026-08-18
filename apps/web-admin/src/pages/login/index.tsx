@@ -112,9 +112,7 @@ export default function LoginPage() {
               />
               <FieldError>{errors.password}</FieldError>
             </Field>
-            {formError && (
-              <FieldError className="text-center">{formError}</FieldError>
-            )}
+            {formError && <FieldError className="text-center">{formError}</FieldError>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <LoaderCircle className="animate-spin" data-icon="inline-start" />}
               登录

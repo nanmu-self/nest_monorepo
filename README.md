@@ -114,18 +114,24 @@ cp apps/server/.env.example apps/server/.env
 cp apps/web-admin/.env.example apps/web-admin/.env
 # 编辑 .env 文件，填入你的数据库连接串等
 
-# 4. 初始化数据库
+# 4. 准备数据库（二选一）
+docker compose up -d                      # 方式 A：本地起 PostgreSQL（推荐，免安装）
+# 方式 B：使用已有实例，改写 apps/server/.env 的 DATABASE_URL
+
+# 5. 初始化数据库
 cd apps/server
-pnpm migrate:create    # 生成并执行迁移
+DATABASE_URL=postgresql://short_link:short_link@localhost:5432/short_link?schema=public pnpm migrate:create
 cd ../..
 
-# 5. 启动开发服务
+# 6. 启动开发服务
 pnpm dev
 ```
 
 启动后：
 
 - 后端 API：`http://localhost:3000/api/v1`（同时支持 `/api/v2`）
+- Swagger 文档：`http://localhost:3000/api/docs`（非生产默认开启，`SWAGGER_ENABLED` 可控）
+- 健康检查：`http://localhost:3000/api/v1/health`（含数据库连通性探活）
 - 前端页面：`http://localhost:5173`
 - 前端通过 Vite proxy 代理 `/api` -> 后端，无需处理跨域
 
@@ -156,12 +162,15 @@ pnpm dev
 
 ### `apps/server/.env`
 
-| 变量           | 说明                      | 默认值             |
-| -------------- | ------------------------- | ------------------ |
-| `DATABASE_URL` | PostgreSQL 连接字符串     | -                  |
-| `PORT`         | 服务监听端口              | `3000`             |
-| `NODE_ENV`     | 运行环境                  | `development`      |
-| `CORS_ORIGIN`  | CORS 允许来源（逗号分隔） | `true`（允许所有） |
+| 变量              | 说明                                                       | 默认值                 |
+| ----------------- | ---------------------------------------------------------- | ---------------------- |
+| `DATABASE_URL`    | PostgreSQL 连接字符串                                      | -                      |
+| `PORT`            | 服务监听端口                                               | `3000`                 |
+| `NODE_ENV`        | 运行环境                                                   | `development`          |
+| `CORS_ORIGIN`     | CORS 允许来源（逗号分隔）                                  | `true`（允许所有）     |
+| `JWT_SECRET`      | JWT 签名密钥，长度 ≥ 32，必填                              | -                      |
+| `SWAGGER_ENABLED` | 是否开启 Swagger 文档（`/api/docs`）                       | 非生产默认开启         |
+| `QINIU_*`         | 七牛对象存储五件套（AK/SK/Bucket/Region/Domain），**可选** | 全部未配置（功能禁用） |
 
 ### `apps/web-admin/.env`
 
@@ -191,6 +200,11 @@ import type { UserDTO, ApiResponse } from '@short-link/shared';
 // ✅ 前端导入 HTTP 客户端工厂
 import { createHttp } from '@short-link/shared/http';
 ```
+
+> **关于 exports 里的 `require` 条件：** 虽然产物是纯 ESM（`type: module`），但 server 经
+> SWC 编译出的是 CJS，运行时靠 Node ≥ 22.12 的 `require(esm)` 能力加载本包。
+> 删掉 `require` 条件会让 server 启动直接 `ERR_PACKAGE_PATH_NOT_EXPORTED`。
+> 前提约束：`packages/shared` 源码**不得使用顶层 await**，否则 require(esm) 会抛错。
 
 ### 🎨 样式系统
 
@@ -306,12 +320,16 @@ A: 当前设置为 `private: true`，如需发布到 npm，移除 private 字段
 - [x] 统一 API 响应封套：`TransformInterceptor` 成功响应 `{ code: 0, data, message: 'ok' }`
 - [x] 业务错误码体系：10000+ 五位码，分段管理，前后端共享枚举
 - [x] 集中式环境变量校验：启动期硬校验，缺失 / 不合法 / 占位密钥直接崩溃
+- [x] 健康检查端点：`/api/v1/health`（@nestjs/terminus，含数据库探活，可供容器探针使用）
+- [x] Swagger API 文档：`/api/docs`（`SWAGGER_ENABLED` 控制，非生产默认开启）
+- [x] docker-compose：本地一键起 PostgreSQL（`docker compose up -d`）
+- [x] CI：GitHub Actions 跑 lint / format / typecheck / build（`.github/workflows/ci.yml`）
+- [x] 可选对象存储：七牛 `QINIU_*` 五变量全不配置则功能禁用（503），不再阻塞启动
 
 尚未实现，按需自取：
 
 - [ ] 请求日志中间件（请求 / 响应 / 耗时）
-- [ ] 健康检查端点（`/health`）
-- [ ] Docker / docker-compose
+- [ ] server 生产镜像（Dockerfile + pnpm deploy，dev 库已由 compose 覆盖）
 - [ ] E2E 测试（CLAUDE.md 明示当前无 test runner）
 
 注：当前模板不包含「短链业务」实现——`prisma/schema.prisma` 只有 `User` 表，路由 `/short-links` 是空状态页。请按业务需要自行扩展。

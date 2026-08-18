@@ -105,6 +105,25 @@ function parseCorsOrigin(): string[] | true {
 
 export const CORS_ORIGIN = parseCorsOrigin();
 
+// ---------- SWAGGER_ENABLED ----------
+
+/**
+ * 解析 Swagger 开关（文档挂载在 /api/docs）。
+ * - 未配置：非生产默认开启（开发自用），生产默认关闭（不向外部暴露接口面）
+ * - 显式配置：只接受 true / false，拼错直接崩溃而不是静默落到默认值
+ */
+function parseSwaggerEnabled(): boolean {
+  const raw = process.env.SWAGGER_ENABLED?.trim().toLowerCase();
+  if (raw === undefined || raw === '') {
+    return !IS_PRODUCTION;
+  }
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  throw new Error('SWAGGER_ENABLED 只接受 true / false（未配置时：非生产默认开启、生产默认关闭）');
+}
+
+export const SWAGGER_ENABLED = parseSwaggerEnabled();
+
 // ---------- JWT_SECRET ----------
 
 /** HS256 对称密钥建议 >= 256 bit，即 >= 32 字节 */
@@ -147,11 +166,29 @@ function requireJwtSecret(): string {
 
 export const JWT_SECRET = requireJwtSecret();
 
-// ---------- 七牛云对象存储 ----------
+// ---------- 七牛云对象存储（可选功能） ----------
 
 /** 七牛存储区域标识（与 qiniu SDK 的 zone 常量一一对应） */
 export const VALID_QINIU_REGIONS = ['z0', 'z1', 'z2', 'na0', 'as0', 'cn-east-2'] as const;
 export type QiniuRegion = (typeof VALID_QINIU_REGIONS)[number];
+
+/** 七牛完整配置；未启用时为 null */
+export interface QiniuConfig {
+  accessKey: string;
+  secretKey: string;
+  bucket: string;
+  region: QiniuRegion;
+  domain: string;
+}
+
+/** 七牛全部配置项 */
+const QINIU_ENV_KEYS = [
+  'QINIU_ACCESS_KEY',
+  'QINIU_SECRET_KEY',
+  'QINIU_BUCKET',
+  'QINIU_REGION',
+  'QINIU_DOMAIN',
+] as const;
 
 /**
  * 解析七牛存储区域。
@@ -164,13 +201,7 @@ export type QiniuRegion = (typeof VALID_QINIU_REGIONS)[number];
  *   as0      东南亚
  *   cn-east-2 华东-浙江2
  */
-function parseQiniuRegion(): QiniuRegion {
-  const raw = process.env.QINIU_REGION;
-  if (!raw) {
-    throw new Error(
-      `QINIU_REGION 未配置：请在 apps/server/.env 中设置存储区域（${VALID_QINIU_REGIONS.join(' / ')} 之一）`,
-    );
-  }
+function parseQiniuRegion(raw: string): QiniuRegion {
   if (!VALID_QINIU_REGIONS.includes(raw as QiniuRegion)) {
     throw new Error(`QINIU_REGION="${raw}" 不合法，必须是 ${VALID_QINIU_REGIONS.join(' / ')} 之一`);
   }
@@ -178,41 +209,38 @@ function parseQiniuRegion(): QiniuRegion {
 }
 
 /**
- * 解析七牛访问域名。
+ * 解析七牛配置（可选功能）。
  *
- * 允许带或不带协议头（http:// / https://），统一去除末尾斜杠，
- * 供 getPublicUrl 拼接 `${domain}/${key}` 使用。
+ * - 五个变量全部未配置 -> 返回 null，对象存储功能整体禁用，
+ *   服务正常启动，相关接口返回 STORAGE_NOT_CONFIGURED。
+ *   模板使用者不需要对象存储时无需伪造任何凭证。
+ * - 部分配置 -> 启动崩溃。宁可拒绝启动也不带着半份配置静默降级，
+ *   否则漏填的那一项要等到第一次调用才以 500 暴露。
  */
-function parseQiniuDomain(): string {
-  const raw = process.env.QINIU_DOMAIN?.trim();
-  if (!raw) {
-    throw new Error('QINIU_DOMAIN 未配置：请在 apps/server/.env 中设置存储空间绑定的访问域名');
+function parseQiniuConfig(): QiniuConfig | null {
+  const configured = QINIU_ENV_KEYS.filter((k) => process.env[k]?.trim());
+  if (configured.length === 0) {
+    return null;
   }
-  // 去掉末尾斜杠，避免拼接出双斜杠
-  return raw.replace(/\/+$/, '');
+  if (configured.length !== QINIU_ENV_KEYS.length) {
+    const missing = QINIU_ENV_KEYS.filter((k) => !configured.includes(k));
+    throw new Error(
+      `七牛配置不完整：已配置 ${configured.join(' / ')}，还缺 ${missing.join(' / ')}。` +
+        '如不需要对象存储，请把这五个 QINIU_* 变量全部删除或注释掉',
+    );
+  }
+
+  return {
+    accessKey: process.env.QINIU_ACCESS_KEY!.trim(),
+    secretKey: process.env.QINIU_SECRET_KEY!.trim(),
+    bucket: process.env.QINIU_BUCKET!.trim(),
+    region: parseQiniuRegion(process.env.QINIU_REGION!.trim()),
+    // 去掉末尾斜杠，避免拼接出双斜杠
+    domain: process.env.QINIU_DOMAIN!.trim().replace(/\/+$/, ''),
+  };
 }
 
-function requireQiniuKey(name: 'QINIU_ACCESS_KEY' | 'QINIU_SECRET_KEY'): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} 未配置：请在 apps/server/.env 中设置七牛云 ${name}`);
-  }
-  return value;
-}
-
-function requireQiniuBucket(): string {
-  const bucket = process.env.QINIU_BUCKET;
-  if (!bucket) {
-    throw new Error('QINIU_BUCKET 未配置：请在 apps/server/.env 中设置七牛云存储空间名');
-  }
-  return bucket;
-}
-
-export const QINIU_ACCESS_KEY = requireQiniuKey('QINIU_ACCESS_KEY');
-export const QINIU_SECRET_KEY = requireQiniuKey('QINIU_SECRET_KEY');
-export const QINIU_BUCKET = requireQiniuBucket();
-export const QINIU_REGION = parseQiniuRegion();
-export const QINIU_DOMAIN = parseQiniuDomain();
+export const QINIU_CONFIG = parseQiniuConfig();
 
 // ---------- 业务常量 ----------
 

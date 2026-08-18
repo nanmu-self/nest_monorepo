@@ -1,4 +1,10 @@
 import { Controller, Post, Delete, Body, Query, UseGuards, HttpStatus } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiServiceUnavailableResponse,
+} from '@nestjs/swagger';
 import type { UploadTokenResponse } from '@short-link/shared';
 import { ErrorCode } from '@short-link/shared';
 import { QiniuService } from './qiniu.service';
@@ -11,7 +17,11 @@ import { UploadTokenDto } from './dto/upload-token.dto';
  *
  * 所有接口均需 JWT 认证：签发上传凭证与删除文件都属于受信操作，
  * 不对匿名用户开放，避免凭证被滥用或文件被恶意删除。
+ *
+ * 功能未启用（未配置 QINIU_* 环境变量）时返回 503 STORAGE_NOT_CONFIGURED。
  */
+@ApiTags('storage')
+@ApiBearerAuth()
 @Controller('qiniu')
 @UseGuards(JwtAuthGuard)
 export class QiniuController {
@@ -24,6 +34,8 @@ export class QiniuController {
    * 不经过业务后端中转。body 可选传入 key（指定文件名）与 expires（有效期）。
    */
   @Post('upload-token')
+  @ApiOperation({ summary: '签发客户端直传上传凭证' })
+  @ApiServiceUnavailableResponse({ description: '对象存储未启用（QINIU_* 未配置）' })
   async createUploadToken(@Body() body: UploadTokenDto): Promise<UploadTokenResponse> {
     return this.qiniuService.createUploadToken(body.key, body.expires);
   }
@@ -38,13 +50,11 @@ export class QiniuController {
    * key 也可传入完整访问 URL，服务端会从中解析出 key。
    */
   @Delete('files')
+  @ApiOperation({ summary: '删除存储空间中的文件' })
+  @ApiServiceUnavailableResponse({ description: '对象存储未启用（QINIU_* 未配置）' })
   async deleteFile(@Query('key') key?: string): Promise<void> {
     if (!key || !key.trim()) {
-      throw new BizException(
-        ErrorCode.INVALID_PARAMS,
-        'key 不能为空',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BizException(ErrorCode.INVALID_PARAMS, 'key 不能为空', HttpStatus.BAD_REQUEST);
     }
     // 兼容前端传完整 URL 的场景
     const fileKey = key.startsWith('http') ? this.qiniuService.parseKeyFromUrl(key) : key;

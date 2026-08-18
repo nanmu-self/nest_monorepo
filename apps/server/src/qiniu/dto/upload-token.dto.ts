@@ -1,5 +1,6 @@
 import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * 签发上传凭证请求 DTO。
@@ -10,6 +11,9 @@ import { Type } from 'class-transformer';
  * 必须是 class（而非 interface）：全局 ValidationPipe 依赖
  * `emitDecoratorMetadata` 反射出的设计期类型做校验，
  * interface 在编译期被擦除，会导致校验静默失效。
+ *
+ * SWC 构建器不支持 @nestjs/swagger 的 CLI 插件（属性类型自动推断），
+ * 所以 @ApiPropertyOptional 需要显式标注。
  */
 export class UploadTokenDto {
   /**
@@ -18,6 +22,7 @@ export class UploadTokenDto {
    */
   @IsOptional()
   @IsString({ message: 'key 必须是字符串' })
+  @ApiPropertyOptional({ description: '指定文件 key（省略则由七牛自动生成）' })
   key?: string;
 
   /**
@@ -28,5 +33,6 @@ export class UploadTokenDto {
   @IsInt({ message: 'expires 必须是整数' })
   @Min(60, { message: 'expires 最小为 60 秒' })
   @Max(86400, { message: 'expires 最大为 86400 秒（1 天）' })
+  @ApiPropertyOptional({ description: '凭证有效期（秒），60–86400', minimum: 60, maximum: 86400 })
   expires?: number;
 }

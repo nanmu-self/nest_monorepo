@@ -11,14 +11,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
+      "require": "./dist/index.js"
     },
     "./http": {
       "types": "./dist/http/index.d.ts",
       "import": "./dist/http/index.js",
-      "require": "./dist/http/index.js",
-      "default": "./dist/http/index.js"
+      "require": "./dist/http/index.js"
     }
   },
   "scripts": {

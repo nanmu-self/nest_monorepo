@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Link2, LogOut, PanelLeftClose, PanelLeftOpen, Users, CloudUpload } from 'lucide-react';
+import {
+  LayoutGrid,
+  Link2,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Users,
+  CloudUpload,
+} from 'lucide-react';
 
 import { auth } from '@/lib/auth';
 

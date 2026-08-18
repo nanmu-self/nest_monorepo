@@ -4,11 +4,12 @@ import { PrismaModule } from '@/prisma/prisma.module';
 import { UsersModule } from '@/users/users.module';
 import { AuthModule } from '@/auth/auth.module';
 import { QiniuModule } from '@/qiniu/qiniu.module';
+import { HealthModule } from '@/health/health.module';
 import { TransformInterceptor } from '@/interceptors/transform.interceptor';
 import { AllExceptionFilter } from '@/filters/all-exception.filter';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, QiniuModule],
+  imports: [PrismaModule, UsersModule, AuthModule, QiniuModule, HealthModule],
   controllers: [],
   providers: [
     // 全局拦截器：统一成功响应封套 { code: 0, data: T, message: 'ok' }

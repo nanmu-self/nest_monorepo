@@ -1,6 +1,6 @@
 # --- Prisma ---
 generated/
-
+.zcode
 # --- Logs / runtime ---
 logs
 *.log

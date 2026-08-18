@@ -1,5 +1,12 @@
 import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import type { LoginResponse, UserDTO } from '@short-link/shared';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '@/guards/jwt-auth.guard';
@@ -10,6 +17,7 @@ import { LoginDto } from './dto/login.dto';
  *
  * 登录接口公开，其他接口需 JWT Token 认证。
  */
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -22,6 +30,9 @@ export class AuthController {
   @Post('login')
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: '用户登录' })
+  @ApiOkResponse({ description: '登录成功，返回 JWT 与用户信息' })
+  @ApiUnauthorizedResponse({ description: '邮箱或密码错误' })
   async login(@Body() body: LoginDto): Promise<LoginResponse> {
     return this.authService.login(body);
   }
@@ -31,6 +42,9 @@ export class AuthController {
    */
   @Get('profile')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取当前登录用户信息' })
+  @ApiOkResponse({ description: '当前用户信息' })
   async getProfile(@Request() req: { user: { id: number } }): Promise<UserDTO> {
     return this.authService.getProfile(req.user.id);
   }

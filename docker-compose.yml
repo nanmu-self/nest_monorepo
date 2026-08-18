@@ -1,0 +1,30 @@
+# 本地开发基础设施：只起 PostgreSQL，应用本体仍用 `pnpm dev` 跑。
+#
+# 用法（仓库根目录）：
+#   docker compose up -d      # 启动
+#   docker compose down       # 停止（保留数据卷）
+#   docker compose down -v    # 停止并删除数据（重置本地库）
+#
+# 对应 apps/server/.env 的连接串：
+#   DATABASE_URL=postgresql://short_link:short_link@localhost:5432/short_link?schema=public
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: short-link-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: short_link
+      POSTGRES_PASSWORD: short_link
+      POSTGRES_DB: short_link
+    ports:
+      - '5432:5432'
+    volumes:
+      - short_link_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U short_link -d short_link']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  short_link_pgdata:

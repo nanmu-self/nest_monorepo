@@ -36,6 +36,7 @@ export const ErrorCode = {
   STORAGE_TOKEN_FAILED: 20200,
   STORAGE_FILE_NOT_FOUND: 20201,
   STORAGE_DELETE_FAILED: 20202,
+  STORAGE_NOT_CONFIGURED: 20203,
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
