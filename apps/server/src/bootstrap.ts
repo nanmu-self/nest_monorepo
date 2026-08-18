@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import { CORS_ORIGIN, SWAGGER_ENABLED } from './config/env';
 
 /**
@@ -26,6 +27,11 @@ function setupSwagger(app: INestApplication) {
  * 统一应用配置，供 main.ts 复用。
  */
 export function setupApp(app: INestApplication) {
+  // 接管 Nest 全局 logger：模块加载、路由映射、AllExceptionFilter 的错误日志
+  // 全部路由到 pino（配合 main.ts 的 bufferLogs，启动期日志也不丢）。
+  // 必须放在最前：后续 setupApp 里若有日志调用也能走 pino。
+  app.useLogger(app.get(Logger));
+
   app.setGlobalPrefix('api');
 
   app.enableVersioning({

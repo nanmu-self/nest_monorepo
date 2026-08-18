@@ -22,6 +22,7 @@
 | 编译器      | SWC                           | -       |
 | ORM         | Prisma                        | 7       |
 | 数据库      | PostgreSQL                    | -       |
+| 日志        | nestjs-pino + pino            | -       |
 | 前端框架    | React                         | 19      |
 | 构建工具    | Vite                          | 8       |
 | 样式框架    | Tailwind CSS                  | 4       |
@@ -45,15 +46,19 @@ nest_monorepo/
 │   │   ├── prisma/
 │   │   │   └── schema.prisma    # 数据库模型定义
 │   │   ├── src/
-│   │   │   ├── filters/         # 全局异常过滤器
-│   │   │   ├── guards/          # 认证/授权守卫
-│   │   │   ├── interceptors/    # 响应转换拦截器
-│   │   │   ├── middleware/      # 请求日志中间件
-│   │   │   ├── prisma/          # PrismaClient 封装（@Global 模块）
-│   │   │   ├── users/           # 示例业务模块
-│   │   │   ├── app.module.ts    # 根模块
-│   │   │   ├── bootstrap.ts     # 应用配置
-│   │   │   └── main.ts          # 入口
+│   │   │   ├── auth/             # 登录 / JWT 认证模块
+│   │   │   ├── config/           # 环境变量集中校验
+│   │   │   ├── filters/          # 全局异常过滤器
+│   │   │   ├── guards/           # 认证/授权守卫
+│   │   │   ├── health/           # 健康检查（terminus + DB 探活）
+│   │   │   ├── interceptors/     # 响应转换拦截器
+│   │   │   ├── logger/           # 结构化日志（nestjs-pino）
+│   │   │   ├── prisma/           # PrismaClient 封装（@Global 模块）
+│   │   │   ├── qiniu/            # 七牛对象存储（可选功能）
+│   │   │   ├── users/            # 示例业务模块
+│   │   │   ├── app.module.ts     # 根模块
+│   │   │   ├── bootstrap.ts      # 应用配置（全局 logger / 前缀 / CORS / Swagger）
+│   │   │   └── main.ts           # 入口
 │   │   ├── .env.example         # 环境变量模板
 │   │   └── prisma.config.ts     # Prisma 7 动态配置
 │   │
@@ -162,15 +167,16 @@ pnpm dev
 
 ### `apps/server/.env`
 
-| 变量              | 说明                                                       | 默认值                 |
-| ----------------- | ---------------------------------------------------------- | ---------------------- |
-| `DATABASE_URL`    | PostgreSQL 连接字符串                                      | -                      |
-| `PORT`            | 服务监听端口                                               | `3000`                 |
-| `NODE_ENV`        | 运行环境                                                   | `development`          |
-| `CORS_ORIGIN`     | CORS 允许来源（逗号分隔）                                  | `true`（允许所有）     |
-| `JWT_SECRET`      | JWT 签名密钥，长度 ≥ 32，必填                              | -                      |
-| `SWAGGER_ENABLED` | 是否开启 Swagger 文档（`/api/docs`）                       | 非生产默认开启         |
-| `QINIU_*`         | 七牛对象存储五件套（AK/SK/Bucket/Region/Domain），**可选** | 全部未配置（功能禁用） |
+| 变量              | 说明                                                       | 默认值                      |
+| ----------------- | ---------------------------------------------------------- | --------------------------- |
+| `DATABASE_URL`    | PostgreSQL 连接字符串                                      | -                           |
+| `PORT`            | 服务监听端口                                               | `3000`                      |
+| `NODE_ENV`        | 运行环境                                                   | `development`               |
+| `CORS_ORIGIN`     | CORS 允许来源（逗号分隔）                                  | `true`（允许所有）          |
+| `JWT_SECRET`      | JWT 签名密钥，长度 ≥ 32，必填                              | -                           |
+| `SWAGGER_ENABLED` | 是否开启 Swagger 文档（`/api/docs`）                       | 非生产默认开启              |
+| `LOG_LEVEL`       | 日志级别（trace/debug/info/warn/error/fatal）              | 非生产 `debug`，生产 `info` |
+| `QINIU_*`         | 七牛对象存储五件套（AK/SK/Bucket/Region/Domain），**可选** | 全部未配置（功能禁用）      |
 
 ### `apps/web-admin/.env`
 
@@ -255,6 +261,18 @@ Prisma 7 不再在 `schema.prisma` 中通过 `env()` 读取 URL，而是通过 `
 export class UsersV2Controller {}
 ```
 
+### 📝 结构化日志（nestjs-pino）
+
+`apps/server/src/logger/logger.module.ts` 统一配置，约定如下：
+
+- **访问日志**：每个 HTTP 请求一行，含 method、路径、状态码、耗时（`responseTime` ms）与自增 `reqId`；`AllExceptionFilter` 的错误日志也带同一 `reqId`，可做请求级关联
+- **reqId 关联机制**：nestjs-pino 的中间件用 `AsyncLocalStorage` 把「当前请求的 child logger」注入整个下游链（守卫 / 拦截器 / 控制器 / 异常过滤器），任何走 Nest `Logger` 的调用都会自动命中它；请求链之外的日志（启动期、生命周期钩子、定时任务）落到根 logger，无 `reqId`
+- **双形态输出**：生产 JSON 行（日志采集器直接消费）；开发 pino-pretty 单行美化（transport 经 `require.resolve` 定位，规避 pnpm 隔离 node_modules 下按名解析失败的问题）
+- **脱敏**：`Authorization` / `Cookie` 请求头与 `set-cookie` 响应头进日志前替换为 `[REDACTED]`；URL 的 query string 不记录
+- **降噪**：`/health` 探针路径不记访问日志
+- **全局接管**：`setupApp` 里 `app.useLogger(app.get(Logger))` 接管 Nest 全局 logger，配合 `main.ts` 的 `bufferLogs: true`，从启动第一行到运行时错误都走同一个 pino 实例
+- **级别**：`LOG_LEVEL` 控制（见环境变量表）；拼错值启动直接崩溃
+
 ### 🛡️ 安全与规范
 
 - **ValidationPipe**：全局启用 `whitelist` + `forbidNonWhitelisted`，自动过滤未声明字段
@@ -325,10 +343,10 @@ A: 当前设置为 `private: true`，如需发布到 npm，移除 private 字段
 - [x] docker-compose：本地一键起 PostgreSQL（`docker compose up -d`）
 - [x] CI：GitHub Actions 跑 lint / format / typecheck / build（`.github/workflows/ci.yml`）
 - [x] 可选对象存储：七牛 `QINIU_*` 五变量全不配置则功能禁用（503），不再阻塞启动
+- [x] 结构化日志：nestjs-pino 请求/响应/耗时访问日志 + 全局 logger 接管（JSON 行 / dev 美化双形态，敏感头脱敏）
 
 尚未实现，按需自取：
 
-- [ ] 请求日志中间件（请求 / 响应 / 耗时）
 - [ ] server 生产镜像（Dockerfile + pnpm deploy，dev 库已由 compose 覆盖）
 - [ ] E2E 测试（CLAUDE.md 明示当前无 test runner）
 

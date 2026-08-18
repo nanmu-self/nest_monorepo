@@ -124,6 +124,31 @@ function parseSwaggerEnabled(): boolean {
 
 export const SWAGGER_ENABLED = parseSwaggerEnabled();
 
+// ---------- LOG_LEVEL ----------
+
+/** pino 支持的日志级别（从最详细到最安静） */
+const VALID_LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
+type LogLevel = (typeof VALID_LOG_LEVELS)[number];
+
+/**
+ * 解析日志级别。
+ * - 未配置：非生产默认 debug（开发期多暴露上下文），生产默认 info
+ *   （请求访问日志就是 info 级别，配成 warn 会静默丢掉请求日志）
+ * - 显式配置必须是合法级别，拼错直接崩溃而不是静默吞日志
+ */
+function parseLogLevel(): LogLevel {
+  const raw = process.env.LOG_LEVEL?.trim().toLowerCase();
+  if (raw === undefined || raw === '') {
+    return IS_PRODUCTION ? 'info' : 'debug';
+  }
+  if (!VALID_LOG_LEVELS.includes(raw as LogLevel)) {
+    throw new Error(`LOG_LEVEL="${raw}" 不合法，必须是 ${VALID_LOG_LEVELS.join(' / ')} 之一`);
+  }
+  return raw as LogLevel;
+}
+
+export const LOG_LEVEL = parseLogLevel();
+
 // ---------- JWT_SECRET ----------
 
 /** HS256 对称密钥建议 >= 256 bit，即 >= 32 字节 */
