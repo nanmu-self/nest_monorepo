@@ -125,7 +125,7 @@ docker compose up -d                      # 方式 A：本地起 PostgreSQL（�
 
 # 5. 初始化数据库
 cd apps/server
-DATABASE_URL=postgresql://short_link:short_link@localhost:5432/short_link?schema=public pnpm migrate:create
+DATABASE_URL=postgresql://app:app@localhost:5432/app?schema=public pnpm migrate:create
 cd ../..
 
 # 6. 启动开发服务
@@ -197,14 +197,14 @@ pnpm dev
 
 ### 🔄 Shared 包子路径导出
 
-`@short-link/shared` 使用子路径导出避免不必要的依赖拉取：
+`@app/shared` 使用子路径导出避免不必要的依赖拉取：
 
 ```typescript
 // ✅ 服务端只导入类型，不会引入 alova
-import type { UserDTO, ApiResponse } from '@short-link/shared';
+import type { UserDTO, ApiResponse } from '@app/shared';
 
 // ✅ 前端导入 HTTP 客户端工厂
-import { createHttp } from '@short-link/shared/http';
+import { createHttp } from '@app/shared/http';
 ```
 
 > **关于 exports 里的 `require` 条件：** 虽然产物是纯 ESM（`type: module`），但 server 经
@@ -214,13 +214,13 @@ import { createHttp } from '@short-link/shared/http';
 
 ### 🎨 样式系统
 
-**`@short-link/config-tailwind`** - 共享设计系统：
+**`@app/config-tailwind`** - 共享设计系统：
 
 - 定义品牌色阶、功能色、字体、圆角等设计 Token
 - 导出 `styles.css` 内含 `@theme` 和 `@layer components`
 - 消费方直接 import CSS 即可应用统一风格
 
-**`@short-link/ui`** - 共享组件库：
+**`@app/ui`** - 共享组件库：
 
 - shadcn 风格组件（Button 等）
 - `cn()` 工具函数（clsx + tailwind-merge）
@@ -350,7 +350,7 @@ A: 当前设置为 `private: true`，如需发布到 npm，移除 private 字段
 - [ ] server 生产镜像（Dockerfile + pnpm deploy，dev 库已由 compose 覆盖）
 - [ ] E2E 测试（CLAUDE.md 明示当前无 test runner）
 
-注：当前模板不包含「短链业务」实现——`prisma/schema.prisma` 只有 `User` 表，路由 `/short-links` 是空状态页。请按业务需要自行扩展。
+注：本模板由短链项目裁剪而来，只保留通用基础设施与示例模块（用户管理 / JWT 登录 / 七牛存储）。`prisma/schema.prisma` 仅有 `User` 表，业务功能请按新项目需要自行扩展。
 
 ## 许可证
 

@@ -1,5 +1,5 @@
 {
-  "name": "@short-link/web-admin",
+  "name": "@app/web-admin",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@short-link/config-tailwind": "workspace:*",
-    "@short-link/shared": "workspace:*",
-    "@short-link/ui": "workspace:*",
+    "@app/config-tailwind": "workspace:*",
+    "@app/shared": "workspace:*",
+    "@app/ui": "workspace:*",
     "alova": "^3.5.2",
     "lucide-react": "^1.28.0",
     "qiniu-js": "^3.4.4",

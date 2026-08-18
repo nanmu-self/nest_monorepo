@@ -1,8 +1,8 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import type { UserDTO, LoginRequest, LoginResponse } from '@short-link/shared';
-import { ErrorCode } from '@short-link/shared';
+import type { UserDTO, LoginRequest, LoginResponse } from '@app/shared';
+import { ErrorCode } from '@app/shared';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BizException } from '@/common/biz-exception';
 import { mapUserToDTO } from '@/users/user.mapper';

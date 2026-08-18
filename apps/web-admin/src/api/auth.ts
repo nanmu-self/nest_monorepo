@@ -1,4 +1,4 @@
-import type { LoginRequest, LoginResponse, UserDTO } from '@short-link/shared';
+import type { LoginRequest, LoginResponse, UserDTO } from '@app/shared';
 import { http } from '@/lib/http';
 import { auth } from '@/lib/auth';
 

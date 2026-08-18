@@ -1,4 +1,4 @@
-import type { UserDTO } from '@short-link/shared';
+import type { UserDTO } from '@app/shared';
 
 /**
  * Prisma User 模型 -> API DTO。

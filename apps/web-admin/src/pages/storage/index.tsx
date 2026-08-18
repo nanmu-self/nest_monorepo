@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { LoaderCircle, UploadCloud, Trash2, Link as LinkIcon, Copy, Check } from 'lucide-react';
 import * as qiniu from 'qiniu-js';
-import type { UploadTokenResponse } from '@short-link/shared';
+import type { UploadTokenResponse } from '@app/shared';
 import { resolveErrorMessage } from '@/lib/error-message';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@short-link/ui';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@app/ui';
 
 import { createUploadToken, deleteFile } from '@/api/storage';
 

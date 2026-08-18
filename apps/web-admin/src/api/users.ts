@@ -1,4 +1,4 @@
-import type { UserDTO } from '@short-link/shared';
+import type { UserDTO } from '@app/shared';
 import { http } from '@/lib/http';
 
 /** 获取用户列表 */

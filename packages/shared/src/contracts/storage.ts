@@ -2,7 +2,7 @@
  * 对象存储相关的 API 契约类型。
  *
  * 这些接口描述的是 API 响应的 wire format（JSON）。
- * 字段为 snake_case，与 @short-link/shared 的其他契约保持一致。
+ * 字段为 snake_case，与 @app/shared 的其他契约保持一致。
  */
 
 /**

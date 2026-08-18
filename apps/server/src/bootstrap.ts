@@ -11,8 +11,8 @@ import { CORS_ORIGIN, SWAGGER_ENABLED } from './config/env';
  */
 function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
-    .setTitle('Short Link API')
-    .setDescription('短链服务 API。统一响应封套：`{ code: 0, data, message }`。')
+    .setTitle('Admin API')
+    .setDescription('管理后台 API。统一响应封套：`{ code: 0, data, message }`。')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

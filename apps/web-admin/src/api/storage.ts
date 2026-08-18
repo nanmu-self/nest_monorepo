@@ -1,4 +1,4 @@
-import type { UploadTokenResponse } from '@short-link/shared';
+import type { UploadTokenResponse } from '@app/shared';
 import { http } from '@/lib/http';
 
 /**

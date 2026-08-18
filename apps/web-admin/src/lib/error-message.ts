@@ -1,4 +1,4 @@
-import { ErrorCode, HttpError } from '@short-link/shared';
+import { ErrorCode, HttpError } from '@app/shared';
 
 /**
  * 业务错误码 -> 界面文案。

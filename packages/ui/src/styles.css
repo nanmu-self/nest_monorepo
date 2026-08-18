@@ -1,7 +1,7 @@
 /**
  * shadcn/ui 语义化设计 token
  *
- * 消费方通过 @import '@short-link/ui/styles.css' 引入，
+ * 消费方通过 @import '@app/ui/styles.css' 引入，
  * 生成 bg-background / text-foreground / bg-primary ... 等工具类。
  *
  * 主题：shadcn 默认黑白配色（slate 中性色阶），主色用纯黑而非默认蓝，

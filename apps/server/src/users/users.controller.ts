@@ -1,6 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { UserDTO } from '@short-link/shared';
+import type { UserDTO } from '@app/shared';
 
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '@/guards/jwt-auth.guard';

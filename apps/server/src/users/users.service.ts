@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { UserDTO } from '@short-link/shared';
+import type { UserDTO } from '@app/shared';
 import { PrismaService } from '@/prisma/prisma.service';
 import { mapUserToDTO } from './user.mapper';
 

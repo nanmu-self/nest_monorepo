@@ -1,25 +1,24 @@
-import { ArrowUpRight, Link2, MousePointerClick, Users } from 'lucide-react';
+import { ArrowUpRight, CloudUpload, Users } from 'lucide-react';
 
 /**
  * 仪表盘：核心指标卡片 + 快速入口。
  * 指标数据后续接入后端统计接口，当前为占位。
  */
 const STATS = [
-  { label: '短链总数', value: '—', icon: Link2 },
-  { label: '总访问量', value: '—', icon: MousePointerClick },
   { label: '用户数', value: '—', icon: Users },
+  { label: '存储文件', value: '—', icon: CloudUpload },
 ] as const;
 
 const QUICK_ACTIONS = [
   {
-    title: '创建短链',
-    description: '生成一个新的短链接，支持自定义后缀与过期时间。',
-    to: '/short-links',
-  },
-  {
     title: '管理用户',
     description: '查看和管理后台注册的用户账号。',
     to: '/users',
+  },
+  {
+    title: '对象存储',
+    description: '上传文件到七牛对象存储，管理已上传的资源。',
+    to: '/storage',
   },
 ] as const;
 
@@ -29,7 +28,7 @@ export default function DashboardPage() {
       <h1 className="admin-page-header">仪表盘</h1>
 
       {/* 指标卡片：数字是主角，用 Apple 式大字号 + 负字距 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {STATS.map(({ label, value, icon: Icon }) => (
           <div key={label} className="apple-card">
             <div className="flex items-center justify-between">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LoaderCircle } from 'lucide-react';
-import type { LoginResponse } from '@short-link/shared';
+import type { LoginResponse } from '@app/shared';
 import { resolveErrorMessage } from '@/lib/error-message';
 import {
   Button,
@@ -15,7 +15,7 @@ import {
   FieldGroup,
   FieldLabel,
   Input,
-} from '@short-link/ui';
+} from '@app/ui';
 
 import { login } from '@/api/auth';
 import { auth } from '@/lib/auth';
@@ -81,7 +81,7 @@ export default function LoginPage() {
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
         <CardTitle className="text-xl">欢迎回来</CardTitle>
-        <CardDescription>登录以管理你的短链服务</CardDescription>
+        <CardDescription>登录以进入管理后台</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} noValidate>

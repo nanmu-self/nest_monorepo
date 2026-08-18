@@ -1,6 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
-import type { ApiResponse } from '@short-link/shared';
+import type { ApiResponse } from '@app/shared';
 
 /**
  * 统一成功响应封套拦截器。

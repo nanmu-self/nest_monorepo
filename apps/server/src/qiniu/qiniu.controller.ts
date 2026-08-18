@@ -5,8 +5,8 @@ import {
   ApiTags,
   ApiServiceUnavailableResponse,
 } from '@nestjs/swagger';
-import type { UploadTokenResponse } from '@short-link/shared';
-import { ErrorCode } from '@short-link/shared';
+import type { UploadTokenResponse } from '@app/shared';
+import { ErrorCode } from '@app/shared';
 import { QiniuService } from './qiniu.service';
 import { JwtAuthGuard } from '@/guards/jwt-auth.guard';
 import { BizException } from '@/common/biz-exception';

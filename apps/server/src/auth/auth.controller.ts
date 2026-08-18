@@ -7,7 +7,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { LoginResponse, UserDTO } from '@short-link/shared';
+import type { LoginResponse, UserDTO } from '@app/shared';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '@/guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';

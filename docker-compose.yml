@@ -6,25 +6,25 @@
 #   docker compose down -v    # 停止并删除数据（重置本地库）
 #
 # 对应 apps/server/.env 的连接串：
-#   DATABASE_URL=postgresql://short_link:short_link@localhost:5432/short_link?schema=public
+#   DATABASE_URL=postgresql://app:app@localhost:5432/app?schema=public
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: short-link-postgres
+    container_name: app-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: short_link
-      POSTGRES_PASSWORD: short_link
-      POSTGRES_DB: short_link
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
     ports:
       - '5432:5432'
     volumes:
-      - short_link_pgdata:/var/lib/postgresql/data
+      - app_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U short_link -d short_link']
+      test: ['CMD-SHELL', 'pg_isready -U app -d app']
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  short_link_pgdata:
+  app_pgdata:

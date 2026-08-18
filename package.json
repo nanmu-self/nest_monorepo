@@ -1,5 +1,5 @@
 {
-  "name": "short-link",
+  "name": "app",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "predev": "pnpm --filter @short-link/shared --filter @short-link/config-tailwind --filter @short-link/ui build",
-    "dev": "pnpm --parallel --filter @short-link/shared --filter @short-link/config-tailwind --filter @short-link/ui --filter @short-link/server --filter @short-link/web-admin dev",
+    "predev": "pnpm --filter @app/shared --filter @app/config-tailwind --filter @app/ui build",
+    "dev": "pnpm --parallel --filter @app/shared --filter @app/config-tailwind --filter @app/ui --filter @app/server --filter @app/web-admin dev",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "prettier --write .",

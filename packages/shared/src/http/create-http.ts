@@ -77,7 +77,7 @@ function isApiResponse(body: unknown): body is ApiResponse {
  * @example
  * ```ts
  * import ReactHook from 'alova/react';
- * import { createHttp } from '@short-link/shared/http';
+ * import { createHttp } from '@app/shared/http';
  *
  * export const http = createHttp({
  *   baseURL: '/api/v1',

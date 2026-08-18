@@ -5,7 +5,7 @@
  * 分段约定见 api-response.ts：
  *   10000–10099 通用
  *   10100–10199 认证/授权
- *   20000–20099 短链
+ *   20000+      业务域段（每域 100 个，从 20000 起接续分配）
  *   20100–20199 用户
  *   20200–20299 存储/文件
  *
@@ -22,11 +22,6 @@ export const ErrorCode = {
   AUTH_TOKEN_EXPIRED: 10101,
   AUTH_TOKEN_INVALID: 10102,
   AUTH_FORBIDDEN: 10103,
-
-  // ---------- 短链 20000–20099 ----------
-  LINK_NOT_FOUND: 20000,
-  LINK_EXPIRED: 20001,
-  LINK_DUPLICATE: 20002,
 
   // ---------- 用户 20100–20199 ----------
   USER_NOT_FOUND: 20100,

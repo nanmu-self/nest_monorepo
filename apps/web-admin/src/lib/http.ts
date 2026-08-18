@@ -1,5 +1,5 @@
 import ReactHook from 'alova/react';
-import { createHttp } from '@short-link/shared/http';
+import { createHttp } from '@app/shared/http';
 import { auth } from '@/lib/auth';
 
 /**

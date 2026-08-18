@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid,
-  Link2,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -15,7 +14,6 @@ import { auth } from '@/lib/auth';
 /** 导航项集中声明：侧栏渲染与顶栏标题共用同一份数据源 */
 const NAV_ITEMS = [
   { to: '/', label: '仪表盘', icon: LayoutGrid, end: true },
-  { to: '/short-links', label: '短链', icon: Link2, end: false },
   { to: '/users', label: '用户', icon: Users, end: false },
   { to: '/storage', label: '七牛存储', icon: CloudUpload, end: false },
 ] as const;
@@ -52,8 +50,8 @@ export default function AppLayout() {
     <div className="app-shell" data-collapsed={collapsed}>
       <aside className="app-sidebar">
         <div className="app-brand">
-          <span className="app-brand-mark">S</span>
-          <span className="app-brand-text">短链管理</span>
+          <span className="app-brand-mark">A</span>
+          <span className="app-brand-text">管理后台</span>
         </div>
         <nav>
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
@@ -70,7 +68,7 @@ export default function AppLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="app-sidebar-footer">Short Link Admin</div>
+        <div className="app-sidebar-footer">Admin Console</div>
       </aside>
 
       <div className="app-body">

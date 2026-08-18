@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import '@short-link/config-tailwind/styles.css';
-@import '@short-link/ui/styles.css';
+@import '@app/config-tailwind/styles.css';
+@import '@app/ui/styles.css';
 
-/* @short-link/ui 的 styles.css 已通过 @source 声明自身组件文件位置，
+/* @app/ui 的 styles.css 已通过 @source 声明自身组件文件位置，
    Tailwind 会自动扫描 dist 中的 cva 类名字符串，无需在此跨包引用路径。 */
 
 /* 扫描本应用源码：dashboard 的 sm:grid-cols-3 / 业务页里的 grid-cols-*
@@ -18,7 +18,7 @@
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* 品牌色阶（--color-brand-*）由 @short-link/config-tailwind 统一定义为 Apple 系统蓝，
+  /* 品牌色阶（--color-brand-*）由 @app/config-tailwind 统一定义为 Apple 系统蓝，
      此处不再覆盖，避免真理双源 */
 }
 

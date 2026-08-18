@@ -47,13 +47,6 @@ export const router = createBrowserRouter([
         },
       },
       {
-        path: 'short-links',
-        lazy: async () => {
-          const mod = await import('@/pages/short-links');
-          return { Component: mod.default };
-        },
-      },
-      {
         path: 'users',
         lazy: async () => {
           const mod = await import('@/pages/users');

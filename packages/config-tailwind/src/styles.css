@@ -1,7 +1,7 @@
 /**
  * 共享 Tailwind 设计 token + 通用组件类
  *
- * 消费方通过 @import '@short-link/config-tailwind/styles.css' 引入，
+ * 消费方通过 @import '@app/config-tailwind/styles.css' 引入，
  * 可在自身 CSS 中追加同名 @layer components 覆盖（后定义者胜出）。
  *
  * 本文件是设计 token 的唯一真理源；theme.ts 已删除（Tailwind v4 只读 CSS @theme）。
@@ -30,7 +30,7 @@
   --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, Consolas, monospace;
 
-  /* 圆角由 @short-link/ui 的 shadcn 语义 token 统一提供（--radius-*） */
+  /* 圆角由 @app/ui 的 shadcn 语义 token 统一提供（--radius-*） */
 }
 
 /* ---------- 通用组件类：跨业务复用的原子化样式组合 ---------- */

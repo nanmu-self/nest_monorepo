@@ -1,5 +1,5 @@
 {
-  "name": "@short-link/config-tailwind",
+  "name": "@app/config-tailwind",
   "version": "0.0.0",
   "private": true,
   "type": "module",

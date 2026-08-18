@@ -1,7 +1,7 @@
 import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import * as qiniu from 'qiniu';
-import type { UploadTokenResponse } from '@short-link/shared';
-import { ErrorCode } from '@short-link/shared';
+import type { UploadTokenResponse } from '@app/shared';
+import { ErrorCode } from '@app/shared';
 import { BizException } from '@/common/biz-exception';
 import { QINIU_CONFIG, type QiniuRegion } from '@/config/env';
 

@@ -1,7 +1,7 @@
 import { Injectable, ExecutionContext, HttpStatus } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { ErrorCode } from '@short-link/shared';
+import { ErrorCode } from '@app/shared';
 import { BizException } from '@/common/biz-exception';
 
 /**
