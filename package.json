@@ -15,6 +15,8 @@
   },
   "files": [
     "scripts/create",
+    "scripts/prepack.mjs",
+    "scripts/postpack.mjs",
     "template",
     "template.manifest.json",
     "README.md",
@@ -32,7 +34,9 @@
     "clean": "node scripts/clean.mjs",
     "create": "node scripts/create/bin.mjs",
     "create:test": "node scripts/create/bin.mjs /tmp/cnm-test --force",
-    "create:dry": "node scripts/create/bin.mjs /tmp/cnm-dry --dry-run"
+    "create:dry": "node scripts/create/bin.mjs /tmp/cnm-dry --dry-run",
+    "prepack": "node scripts/prepack.mjs",
+    "postpack": "node scripts/postpack.mjs"
   },
   "devDependencies": {
     "oxlint": "^1.0.0",

@@ -94,3 +94,6 @@ out
 
 # --- CodeGraph (local code intelligence index, do not commit) ---
 .codegraph/
+
+# --- create-nest-monorepo CLI artifacts ---
+.prepack-state.json

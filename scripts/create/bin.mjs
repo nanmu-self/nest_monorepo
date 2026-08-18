@@ -8,14 +8,19 @@
 //
 // 流程：
 //   1. 解析参数 / 问用户收集项目名、scope、description、author
-//   2. 校验目标目录
+//   2. 校验目标目录（拒绝 dest === cwd 的危险场景）
 //   3. 拷贝模板 + 做 {{var}} 占位符替换
 //   4. （可选）git init
 //   5. （可选）pnpm install
 //   6. 提示用户下一步
+//
+// 错误回滚策略：
+//   - 拷贝或 git init 失败 → 删除整个 destDir（粗粒度回滚）
+//   - pnpm install 失败 → 不回滚（保留项目，用户大概率想看错误信息自己修）
+//   - 用户传 . 或路径等同于 cwd → 拒绝执行（避免误删当前目录）
 
 import { resolve } from 'node:path';
-import { stat, mkdir, access, readdir } from 'node:fs/promises';
+import { stat, mkdir, readdir, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { collectAnswers } from './lib/prompt.mjs';
 import { scaffold } from './lib/copy.mjs';
@@ -42,9 +47,7 @@ const step = (m) => `\n${c.cyan}→${c.reset} ${c.bold}${m}${c.reset}\n`;
  *
  * 副作用：Node 18–22 会发 DEP0190 DeprecationWarning
  * （"Passing args to a child process with shell option true ..."）。
- * 这是 Node 官方已知问题（nodejs/help#4231），不影响功能，
- * Node 官方推荐的变通方式就是现在这样：数组参数 + shell: true。
- * Node 23+ 会重设计 spawn() 彻底解决。
+ * 这是 Node 官方已知问题（nodejs/help#4231），不影响功能。
  */
 function runCommand(cmd, args, cwd) {
   return new Promise((resolve) => {
@@ -71,9 +74,38 @@ async function dirExistsAndEmpty(p) {
   }
 }
 
+/**
+ * 检查 dest 是否安全：不能等于 cwd（避免误删当前目录）。
+ * 严格比较 path.resolve 后的结果。
+ */
+function assertDestSafe(dest) {
+  const cwd = resolve(process.cwd());
+  // Windows 上 path.resolve 不区分大小写
+  const isWin = process.platform === 'win32';
+  const a = isWin ? dest.toLowerCase() : dest;
+  const b = isWin ? cwd.toLowerCase() : cwd;
+  if (a === b) {
+    throw new Error(`目标目录不能是当前工作目录（${dest}）。请传入子目录名，如 my-app。`);
+  }
+  // 也要拒绝 dest 是 cwd 的祖先（极端情况）
+  // —— 但实际上只有 dest === cwd 会引发 rm -rf 的灾难，祖先目录的可能性较低（用户主动传了绝对路径），先不处理。
+}
+
+async function rollback(dest, reason) {
+  console.warn(warn(`回滚 ${dest}（${reason}）`));
+  try {
+    await rm(dest, { recursive: true, force: true });
+  } catch (err) {
+    console.error(`${c.red}回滚失败: ${err.message}${c.reset}`);
+    console.error(`请手动删除 ${dest}`);
+  }
+}
+
 async function main() {
   const { args, targetDir, vars } = await collectAnswers(process.argv.slice(2));
   const dest = resolve(process.cwd(), targetDir);
+
+  assertDestSafe(dest);
 
   // 目标目录检查
   const exists = await dirExistsAndEmpty(dest);
@@ -97,24 +129,30 @@ async function main() {
   await mkdir(dest, { recursive: true });
   console.log(`\n${c.bold}生成项目到 ${dest}${c.reset}\n`);
 
-  await scaffold(vars, dest, {
-    log: (m) => console.log(ok(m.replace(/^  \+ /, '')))
-  });
+  // ---- 阶段 1: scaffold（拷贝 + 替换）----
+  try {
+    await scaffold(vars, dest, {
+      log: (m) => console.log(ok(m.replace(/^  \+ /, '')))
+    });
+  } catch (err) {
+    await rollback(dest, `scaffold 失败: ${err.message}`);
+    throw err;
+  }
 
   let installFailed = false;
 
-  // 4. git init（如果开了 --git）
+  // ---- 阶段 2: git init ----
   if (args.git) {
     console.log(step('git init'));
     const code = await runCommand('git', ['init'], dest);
     if (code !== 0) {
-      console.warn(warn('git init 失败（已忽略）。确认 git 已安装且在 PATH 中。'));
-    } else {
-      console.log(ok('git init 完成（未做首次提交，由你控制 commit 信息）'));
+      await rollback(dest, 'git init 失败');
+      throw new Error('git init 失败，已回滚生成的文件。确认 git 已安装且在 PATH 中。');
     }
+    console.log(ok('git init 完成（未做首次提交，由你控制 commit 信息）'));
   }
 
-  // 5. pnpm install（如果开了 --install）
+  // ---- 阶段 3: pnpm install（不参与回滚，失败保留项目）----
   if (args.install) {
     console.log(step('pnpm install'));
     const code = await runCommand('pnpm', ['install'], dest);
@@ -126,15 +164,11 @@ async function main() {
     }
   }
 
-  // 6. 收尾
+  // 收尾
   console.log(`\n${c.bold}完成!${c.reset} 下一步:\n`);
   console.log(`  ${info('cd')} ${targetDir}`);
-  if (!args.install) {
-    console.log(`  ${info('pnpm install')}`);
-  }
-  if (!args.git) {
-    console.log(`  ${info('git init')}    ${c.dim}# 可选${c.reset}`);
-  }
+  if (!args.install) console.log(`  ${info('pnpm install')}`);
+  if (!args.git) console.log(`  ${info('git init')}    ${c.dim}# 可选${c.reset}`);
   console.log(`  ${info('pnpm dev')}\n`);
 
   if (!vars.scope || !vars.scope.startsWith('@')) {
@@ -142,7 +176,6 @@ async function main() {
     console.log(warn('      pnpm workspace 仍可工作，但 npm 发布会受限。'));
   }
 
-  // install 失败时退出码非零,让 CI 之类能感知
   if (installFailed) process.exit(1);
 }
 

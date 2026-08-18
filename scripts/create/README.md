@@ -108,32 +108,39 @@ npm login
 npm publish --access public
 ```
 
-`pnpm pack` 出来的 tarball 只包含 `files` 字段列出的 5 项:
+`pnpm pack` 出来的 tarball 包含 `files` 字段列出的项:
 
 - `scripts/create/`
-- `template/`
+- `scripts/prepack.mjs`、`scripts/postpack.mjs`
+- `template/`（prepack 后是真目录）
 - `template.manifest.json`
 - `README.md`
 - `LICENSE`
 
-`node_modules/`、`.git/`、`apps/` 真实目录（被软链接 dereference 后才进 tarball —— 但因为它们在 `template/` 下是 symlink,而 `template` 整体被打包,symlink 在 tarball 里保留为 symlink,解压时仍指向不存在的 `../apps`,所以是安全的;**但这意味着发布后用户拷出来的 `apps/` 会是个坏 symlink** —— 这点要注意,见下方"已知陷阱"）
+`node_modules/`、`.git/`、`dist/`、`.tsbuildinfo` 都被 prepack 的 filter 跳过，不进 tarball。
+
+`prepack` 钩子在 pack 前自动把 `template/{apps,packages}` 从 symlink 转成真实目录拷贝（跳过 `node_modules` 等），`postpack` 钩子还原。`package.json#scripts` 里声明了这两个钩子，pnpm pack 会自动调用。
+
+## 错误回滚
+
+- 拷贝或 git init 阶段失败 → 整个 `destDir` 被删，退出码非零
+- pnpm install 阶段失败 → **不**回滚，项目保留，退出码非零（用户大概率想看错误信息自己修）
+- `destDir` 等于 `process.cwd()` → 拒绝执行（避免误删当前目录），退出码非零
 
 ## 已知陷阱
 
 ### 软链接在 tarball 里的行为
 
-`pnpm pack` 把 `template/apps` 这个 symlink 打进 tarball。**发布到 npm 后**,用户装包,npm 解压时这个 symlink 会变成相对路径 `../apps` —— 但用户的当前目录结构里没有 `apps`,所以会断。
+`pnpm pack` 把 `template/apps` 这个 symlink 打进 tarball。**发布到 npm 后**，用户装包，npm 解压时这个 symlink 会变成相对路径 `../apps` —— 但用户的当前目录结构里没有 `apps`，所以会断。
 
-**现在的应对**:CLI 跑的时候用 `fs.cp` 配 `dereference: true`,会把 symlink 解开成真实文件树。这条路在本地(从仓库根直接跑)能工作,但发布到 npm 后用户 `pnpm create` 时,CLI 源码会从 `node_modules/create-nest-monorepo/template/` 读,而 `template/apps` symlink 的目标 `../apps` 不存在 —— `stat` 会报 ENOENT。
+**解决方案**：`scripts/prepack.mjs` 在 pack 前把 symlink 替换成真实目录拷贝（跳过 `node_modules` / `dist` / `.tsbuildinfo`），pack 完 `scripts/postpack.mjs` 还原成 symlink。`package.json#scripts` 里声明了 `prepack` / `postpack` 钩子，pnpm pack 会自动调用。
 
-**建议(暂未实现)**:发布前用脚本把 `template/apps` 和 `template/packages` 从 symlink 换成真实目录拷贝。可以用 `pnpm pack` 后 sed 改 tarball,或者在 `prepack` 钩子里临时 dereference。
-
-**当前状态**:本地使用(`node scripts/create/bin.mjs my-app`)完美工作。npm 发布后用户使用时,需要先 `pnpm pack` 本地看一下 `template/apps` 在产物里是不是 symlink,如果是,加一个 `prepack` 脚本来处理。
+如果 `postpack` 失败（比如 SIGKILL），`template/` 会留真目录占着，手动 `git checkout -- template/` 恢复。
 
 ## TODO（后续优化方向）
 
-- [ ] 加 `prepack` 脚本,发布前把 `template/{apps,packages}` 从 symlink 转成真实拷贝
-- [ ] 可选模块系统(让用户选要不要 Tailwind 包 / Prisma / 鉴权等)
+- [x] 加 `prepack` 脚本，发布前把 `template/{apps,packages}` 从 symlink 转成真实拷贝
 - [x] `--git` 选项：生成完自动 `git init`（不做 commit）
 - [x] `--install` 选项：生成完直接 `pnpm install`
-- [ ] 错误恢复:写到一半失败时回滚已生成的文件
+- [x] 错误恢复：拷贝/git init 失败时回滚已生成的文件；install 失败不参与回滚
+- [ ] 可选模块系统（让用户选要不要 Tailwind 包 / Prisma / 鉴权等）
