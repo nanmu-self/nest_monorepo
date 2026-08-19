@@ -14,6 +14,8 @@ import { stdin, stdout } from 'node:process';
 
 const NPM_NAME_RE = /^(?:@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
 const SCOPE_RE = /^@[a-z0-9-~][a-z0-9-._~]*$/;
+// 交互时用户输入这些词表示"不要 scope"（--no-scope 的交互等价物）
+const NO_SCOPE_INPUT = new Set(['-', 'none', 'no', '()']);
 
 /**
  * 从 argv 解析 CLI 参数。
@@ -26,6 +28,7 @@ export function parseArgs(argv) {
     switch (a) {
       case '--name': args.name = argv[++i]; break;
       case '--scope': args.scope = argv[++i]; break;
+      case '--no-scope': args.scope = ''; break;
       case '--description': args.description = argv[++i]; break;
       case '--author': args.author = argv[++i]; break;
       case '--yes':
@@ -55,6 +58,7 @@ function printHelp() {
 选项:
   --name <name>            项目名（默认: 目录名）
   --scope <@scope>         npm scope，例如 @acme（默认: @<name>）
+  --no-scope               不要 scope，各包用裸名（如 server 而非 @scope/server）
   --description <text>     描述（可空）
   --author <name>          作者（可空）
   -y, --yes                全部使用默认值，不交互
@@ -133,10 +137,14 @@ export async function collectAnswers(argv) {
     if (!name) {
       name = useDefaults ? derived.name : await ask(rl, '项目名', derived.name);
     }
-    if (!scope) {
+    if (scope === undefined) {
       const def = derived.scope;
-      const input = useDefaults ? def : await ask(rl, 'npm scope', def);
-      scope = input; // 允许用户填空（去掉 @）
+      if (useDefaults) {
+        scope = def;
+      } else {
+        const input = await ask(rl, 'npm scope（输入 - 表示不要 scope）', def);
+        scope = NO_SCOPE_INPUT.has(input.toLowerCase()) ? '' : input;
+      }
     }
     if (!useDefaults) {
       description = await ask(rl, '描述（可空）', '');
@@ -145,16 +153,26 @@ export async function collectAnswers(argv) {
     if (!args.description) description = description || '';
     if (!args.author) author = author || '';
 
-    // 校验
+    // 校验（scope 为空串 = 用户明确不要 scope，跳过格式校验）
     const nameErr = validateName(name);
     if (nameErr) throw new Error(nameErr);
-    const scopeErr = validateScope(scope);
-    if (scopeErr) throw new Error(scopeErr);
+    if (scope !== '') {
+      const scopeErr = validateScope(scope);
+      if (scopeErr) throw new Error(scopeErr);
+    }
 
     return {
       args,
       targetDir: target,
-      vars: { projectName: name, scope, description, author }
+      // scopePath: 模板别名用（@app/ -> {{scopePath}}）。= scope + '/'，含 @ 前缀；
+      // 空 scope 时为空串，保证 @app/server 渲染成 @acme/server 或裸名 server，不残留多余斜杠
+      vars: {
+        projectName: name,
+        scope,
+        scopePath: scope ? scope + '/' : '',
+        description,
+        author
+      }
     };
   } finally {
     rl.close();

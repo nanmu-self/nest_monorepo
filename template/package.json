@@ -11,8 +11,8 @@
   },
   "scripts": {
     "build": "pnpm -r build",
-    "predev": "pnpm --parallel --filter {{scope}}/shared --filter {{scope}}/config-tailwind --filter {{scope}}/ui build",
-    "dev": "pnpm --parallel --filter {{scope}}/shared --filter {{scope}}/config-tailwind --filter {{scope}}/ui --filter {{scope}}/server --filter {{scope}}/web-admin dev",
+    "predev": "pnpm --parallel --filter {{scopePath}}shared --filter {{scopePath}}config-tailwind --filter {{scopePath}}ui build",
+    "dev": "pnpm --parallel --filter {{scopePath}}shared --filter {{scopePath}}config-tailwind --filter {{scopePath}}ui --filter {{scopePath}}server --filter {{scopePath}}web-admin dev",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "prettier --write .",

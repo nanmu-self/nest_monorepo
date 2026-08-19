@@ -5,8 +5,9 @@
 //   2. 对清单里的单文件：拷贝 + （如果是文本）做占位符替换
 //   3. 对清单里的目录：递归拷贝，跳过 skipInDirs
 //
-// 软链接处理：fs.cp 传 dereference: true，template/apps 与 template/packages
-// 的 symlink 会被解开成真实目录树。
+// 软链接处理：fs.cp 传 dereference: true，模板目录里的 symlink
+// （如果存在）会被解开成真实目录树。开发态 template/ 下没有 apps/packages，
+// 源目录缺失时跳过并警告（pack 后的包里才有真实内容）。
 
 import { readFile, writeFile, mkdir, cp, readdir, stat } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -26,14 +27,22 @@ function shouldSkip(name, skipList) {
 }
 
 /**
- * 递归拷贝目录，跳过 skipList 里的名字。
+ * 环境变量密钥文件：.env / .env.local / .env.production 等一律不拷贝，
+ * 只放行 .env.example。硬编码兜底，不进 manifest（防止清单误配把密钥带进新项目）。
+ */
+function isEnvSecret(name) {
+  return name === '.env' || (name.startsWith('.env.') && name !== '.env.example');
+}
+
+/**
+ * 递归拷贝目录，跳过 skipList 里的名字与 .env 密钥文件。
  * 对文本类后缀做占位符替换；其它文件原样拷。
  */
 async function copyDirFiltered(src, dest, vars, skipList, aliases = []) {
   await mkdir(dest, { recursive: true });
   const entries = await readdir(src, { withFileTypes: true });
   for (const entry of entries) {
-    if (shouldSkip(entry.name, skipList)) continue;
+    if (shouldSkip(entry.name, skipList) || isEnvSecret(entry.name)) continue;
     const s = join(src, entry.name);
     const d = join(dest, entry.name);
     if (entry.isDirectory() || entry.isSymbolicLink()) {
@@ -112,7 +121,17 @@ export async function scaffold(vars, destDir, opts = {}) {
   for (const d of manifest.dirs ?? []) {
     const src = join(REPO_ROOT, d.src);
     const dest = join(destDir, d.dest ?? d.src);
-    await copyDirFiltered(src, dest, vars, manifest.skipInDirs ?? [], manifest.aliases);
-    log(`  + ${relative(destDir, dest)}/`);
+    try {
+      await copyDirFiltered(src, dest, vars, manifest.skipInDirs ?? [], manifest.aliases);
+      log(`  + ${relative(destDir, dest)}/`);
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        // 开发态源码直跑（未经 prepack）：template/apps 不存在。
+        // pack 后的包里 prepack 已物化，不会走到这里。
+        console.warn(`  ! 跳过 ${d.src}/（源目录不存在，本地直跑请先执行 node scripts/prepack.mjs）`);
+        continue;
+      }
+      throw err;
+    }
   }
 }

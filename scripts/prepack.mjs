@@ -1,80 +1,96 @@
 #!/usr/bin/env node
-// prepack: 把 template/ 里的 symlink 替换成真实目录拷贝。
+// prepack: 把仓库根的 apps/ 与 packages/ 物化到 template/ 下，供 pack 打进 tarball。
 //
 // 为什么需要：
-//   template/apps 与 template/packages 是开发态的软链接（git 里 mode 120000）。
-//   如果不处理，pnpm pack / npm pack 出来的 tarball 会保留 symlink，
-//   用户安装后 symlink 指向的 ../apps 不存在 → 整个 CLI 不可用。
+//   开发态 template/ 下没有 apps/packages 的真实内容（不进 git，见 .gitignore）。
+//   CLI 从 template/ 拷贝模板，所以 pack 前必须先把这两棵树复制进 template/。
 //
 // 行为：
-//   1. 遍历 template/ 下所有 symlink
-//   2. 把 symlink 删掉，cp 真实目录过来
-//   3. 把"原 symlink 目标"写到 .prepack-state.json，postpack 用它恢复
+//   1. 读 template.manifest.json 的 dirs 段（src = template/ 下的目标，dest = 仓库根的源）
+//   2. 把仓库根的 apps/、packages/ 拷到 template/ 下（跳过 skipInDirs 列的目录，
+//      以及 .env 密钥文件 -- 与 copy.mjs 的硬编码兜底一致）
+//   3. 状态文件写在 template/ 外（node_modules/.prepack-state.json），不进 npm 包；
+//      postpack 用它清理
 //
 // 注意：
-//   - 本地开发时（不是 pack 期间），template/ 保持 symlink 不变。
-//   - 跑完 prepack 后，template/ 是真目录；postpack 会还原。
-//   - 如果 postpack 失败（比如 SIGKILL），template/ 会留真目录，
-//     手动 `git checkout -- template/` 恢复。
+//   - 跑完 prepack 后 template/ 下多出的真目录已被 .gitignore 忽略，
+//     postpack 会删除它们还原开发态。
+//   - 如果 postpack 失败（比如 SIGKILL），手动清理：
+//     rm -rf template/apps template/packages node_modules/.prepack-state.json
 //
 // 触发：package.json#scripts.prepack，被 pnpm/npm 自动在 pack 前调用。
 
-import { readlink, rm, cp, writeFile, readdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rm, cp, readdir } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
-const TEMPLATE_DIR = join(REPO_ROOT, 'template');
-const STATE_FILE = join(REPO_ROOT, '.prepack-state.json');
+const MANIFEST_PATH = join(REPO_ROOT, 'template.manifest.json');
+// 状态文件放 node_modules/ 下：npm pack 永久排除 node_modules，
+// 这样它绝不会被打进 tarball（此前放 template/ 下会泄漏进包里）
+const STATE_FILE = join(REPO_ROOT, 'node_modules', '.prepack-state.json');
 
-/** 找 template/ 下所有 symlink（仅第一层；template/ 的 symlink 都是顶层） */
-async function findSymlinks(dir) {
-  const out = [];
-  let entries;
-  try {
-    entries = await readdir(dir, { withFileTypes: true });
-  } catch (err) {
-    if (err.code === 'ENOENT') return out;
-    throw err;
-  }
-  for (const e of entries) {
-    if (e.isSymbolicLink()) out.push(e.name);
-  }
-  return out;
+/** 路径是否应该被跳过（字面量名 + *.ext 通配，与 copy.mjs 保持一致） */
+function shouldSkip(name, skipList) {
+  return skipList.some(
+    (pat) => pat === name || (pat.startsWith('*.') && name.endsWith(pat.slice(1)))
+  );
+}
+
+/** .env 密钥文件不进 tarball（硬编码兜底，与 copy.mjs 一致，不进 manifest） */
+function isEnvSecret(name) {
+  return name === '.env' || (name.startsWith('.env.') && name !== '.env.example');
 }
 
 async function main() {
-  const symlinks = await findSymlinks(TEMPLATE_DIR);
-  if (symlinks.length === 0) {
-    console.log('prepack: template/ 下没有 symlink，无需处理');
-    return;
-  }
+  const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
+  const skipList = manifest.skipInDirs ?? [];
+  const materialized = [];
 
-  const state = { replaced: [] };
-  for (const name of symlinks) {
-    const linkPath = join(TEMPLATE_DIR, name);
-    const target = await readlink(linkPath); // 相对路径，相对于 TEMPLATE_DIR
-    const absoluteTarget = resolve(TEMPLATE_DIR, target);
-    console.log(`prepack: dereferencing ${name} -> ${target}`);
+  for (const d of manifest.dirs ?? []) {
+    // 注意 src/dest 的方向：清单站在 CLI 的视角（src 在 template/ 下），
+    // prepack 是反方向 -- 从仓库根（dest）拷进 template/（src）
+    const sourceDir = resolve(REPO_ROOT, d.dest);
+    const targetDir = resolve(REPO_ROOT, d.src);
 
-    // 删 symlink，cp 真实目录过来。
-    // filter 跳过 node_modules / dist / .tsbuildinfo / .git 等
-    // （这些是开发态生成的，不应进 npm tarball）。
-    await rm(linkPath);
-    await cp(absoluteTarget, linkPath, {
+    let entries;
+    try {
+      entries = await readdir(sourceDir);
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        console.warn(`prepack: 源目录 ${d.dest}/ 不存在，跳过`);
+        continue;
+      }
+      throw err;
+    }
+    if (entries.length === 0) {
+      console.warn(`prepack: 源目录 ${d.dest}/ 为空，跳过`);
+      continue;
+    }
+
+    console.log(`prepack: ${d.dest} -> ${d.src}`);
+    // 先清掉上次可能残留的物化目录，保证幂等
+    await rm(targetDir, { recursive: true, force: true });
+    await cp(sourceDir, targetDir, {
       recursive: true,
       dereference: true,
       filter: (src) => {
         const base = src.split(/[\\/]/).pop();
-        return !['node_modules', 'dist', '.git', '.tsbuildinfo', '.codegraph'].includes(base);
+        return !shouldSkip(base, skipList) && !isEnvSecret(base);
       }
     });
-    state.replaced.push({ name, target });
+    materialized.push(d.src);
   }
 
-  await writeFile(STATE_FILE, JSON.stringify(state, null, 2));
-  console.log(`prepack: 完成（已处理 ${symlinks.length} 个 symlink，状态写入 ${STATE_FILE}）`);
+  if (materialized.length === 0) {
+    console.log('prepack: 无可物化目录，跳过');
+    return;
+  }
+
+  await mkdir(dirname(STATE_FILE), { recursive: true });
+  await writeFile(STATE_FILE, JSON.stringify({ materialized }, null, 2));
+  console.log(`prepack: 完成（物化 ${materialized.length} 个目录，状态写入 ${STATE_FILE}）`);
 }
 
 main().catch((err) => {

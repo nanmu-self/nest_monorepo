@@ -1,0 +1,102 @@
+# --- Prisma ---
+generated/
+.zcode
+# --- Logs / runtime ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# --- Coverage ---
+coverage
+*.lcov
+.nyc_output
+lib-cov
+
+# --- Dependencies ---
+node_modules/
+jspm_packages/
+web_modules/
+.pnpm-store/
+
+# --- TypeScript / Oxlint caches ---
+*.tsbuildinfo
+.oxlintcache
+
+# --- Build output ---
+dist
+dist-ssr
+build
+.next
+out
+.nuxt
+.vuepress/dist
+.serverless/
+.tern-port
+
+# --- Env ---
+.env
+.env.*
+!.env.example
+
+# --- Temp ---
+.temp
+.tmp
+.cache
+.parcel-cache
+
+# --- Tool caches ---
+.eslintcache
+.microbundle.cache/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# --- Pkg tarballs ---
+*.tgz
+
+# --- Yarn v2 ---
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# --- OS ---
+.DS_Store
+
+# --- IDE ---
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Avoid nested VCS inside a workspace package (defensive) ---
+**/packages/**/.git/
+**/apps/**/.git/
+
+# --- Defensive: TS source-only packages should not contain emitted .js files ---
+**/packages/*/src/**/*.js
+**/packages/*/src/**/*.js.map
+**/packages/*/src/**/*.d.ts
+
+# --- CodeGraph (local code intelligence index, do not commit) ---
+.codegraph/
+
+# --- create-nest-monorepo CLI artifacts ---
+# prepack 物化到 template/ 下的目录树（pack 产物的一部分，不进 git）
+# prepack/postpack 的状态文件在 node_modules/ 下（node_modules 本身已忽略）
+template/apps/
+template/packages/

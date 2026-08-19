@@ -14,13 +14,23 @@
     "nest-monorepo": "./scripts/create/bin.mjs"
   },
   "files": [
+    ".editorconfig",
+    ".gitattributes",
+    ".oxlintrc.json",
+    ".prettierignore",
+    ".prettierrc.json",
+    "docker-compose.yml",
+    "pnpm-workspace.yaml",
+    "tsconfig.base.json",
+    "tsconfig.json",
+    "LICENSE",
+    "README.md",
+    "scripts/clean.mjs",
     "scripts/create",
     "scripts/prepack.mjs",
     "scripts/postpack.mjs",
     "template",
-    "template.manifest.json",
-    "README.md",
-    "LICENSE"
+    "template.manifest.json"
   ],
   "scripts": {
     "build": "pnpm -r build",
@@ -33,7 +43,7 @@
     "typecheck": "tsc --build",
     "clean": "node scripts/clean.mjs",
     "create": "node scripts/create/bin.mjs",
-    "create:test": "node scripts/create/bin.mjs /tmp/cnm-test --force",
+    "create:test": "node scripts/create/bin.mjs /tmp/cnm-test --force --yes",
     "create:dry": "node scripts/create/bin.mjs /tmp/cnm-dry --dry-run",
     "prepack": "node scripts/prepack.mjs",
     "postpack": "node scripts/postpack.mjs"

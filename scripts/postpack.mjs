@@ -1,20 +1,20 @@
 #!/usr/bin/env node
-// postpack: 恢复 template/ 里的 symlink。
+// postpack: 清理 prepack 物化到 template/ 下的目录，恢复开发态。
 //
-// 由 prepack.mjs 写下的 .prepack-state.json 驱动：把被替换的真目录删掉，
-// 用原始的相对路径重建 symlink，让 git 工作区回到开发态。
+// 由 prepack.mjs 写下的 node_modules/.prepack-state.json 驱动：
+// 把物化出来的 template/apps、template/packages 删掉即可（它们不进 git）。
 //
 // 失败处理：如果 STATE_FILE 不存在，说明 pack 没经过 prepack（不应该发生），
 // 直接 no-op 退出。
 
-import { rm, readFile, symlink } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { rm, readFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
-const TEMPLATE_DIR = join(REPO_ROOT, 'template');
-const STATE_FILE = join(REPO_ROOT, '.prepack-state.json');
+// 与 prepack.mjs 保持一致：状态文件在 node_modules/ 下（不会进 npm 包）
+const STATE_FILE = join(REPO_ROOT, 'node_modules', '.prepack-state.json');
 
 async function main() {
   let state;
@@ -28,13 +28,9 @@ async function main() {
     throw err;
   }
 
-  for (const { name, target } of state.replaced ?? []) {
-    const linkPath = join(TEMPLATE_DIR, name);
-    console.log(`postpack: restoring symlink ${name} -> ${target}`);
-    // 先删真目录（force: true 容错删空目录或残留）
-    await rm(linkPath, { recursive: true, force: true });
-    // 重建 symlink（target 是相对路径，相对于 symlink 所在目录 TEMPLATE_DIR）
-    await symlink(target, linkPath);
+  for (const dir of state.materialized ?? []) {
+    console.log(`postpack: removing ${dir}`);
+    await rm(resolve(REPO_ROOT, dir), { recursive: true, force: true });
   }
 
   // 清理状态文件
@@ -44,6 +40,6 @@ async function main() {
 
 main().catch((err) => {
   console.error('postpack failed:', err);
-  console.error('提示: 手动恢复: rm -rf template/apps template/packages && ln -s ../apps template/apps && ln -s ../packages template/packages');
+  console.error('提示: 手动清理: rm -rf template/apps template/packages node_modules/.prepack-state.json');
   process.exit(1);
 });

@@ -17,6 +17,9 @@ node scripts/create/bin.mjs my-app --yes
 # 别名替换 scope
 node scripts/create/bin.mjs my-app --scope @acme
 
+# 不要 scope（各包用裸名，如 server）
+node scripts/create/bin.mjs my-app --no-scope
+
 # 只看计划,不动文件
 node scripts/create/bin.mjs my-app --dry-run
 
@@ -54,19 +57,27 @@ scripts/create/
 
 ```
 template/
-├── apps/        -> ../apps       (软链接,改源码自动同步)
-├── packages/    -> ../packages   (软链接,改源码自动同步)
-└── package.json                 (根 package.json 模板,带 {{var}})
+├── apps/        # prepack 物化：pack 前从仓库根拷入（不进 git，见 .gitignore）
+├── packages/    # 同上
+├── gitignore    # 注意不是 .gitignore -- npm install 会把包根的 .gitignore 改名成
+│                # .npmignore，CLI 会因找不到源文件而崩，所以存成 template/gitignore，
+│                # 靠 manifest 的 dest 映射回 .gitignore
+├── npmrc        # 同理：npm pack 永久排除 .npmrc，存成 template/npmrc 映射回 .npmrc
+└── package.json # 根 package.json 模板,带 {{var}}
 ```
 
 `template.manifest.json` 是清单,CLI 按它决定拷什么、跳什么、替换什么。
 
 ## 替换机制（两轮）
 
-1. **别名替换**（先做）—— 来自 manifest 的 `aliases`,比如 `["@app/", "{{scope}}/"]`,
-   把源码里写死的 `@app/server` 整体换成 `<用户 scope>/server`。
-2. **`{{var}}` 占位符**（后做）—— 来自 manifest 的 vars（`projectName`、`scope`、`description`、`author`）,
+1. **别名替换**（先做）—— 来自 manifest 的 `aliases`,比如 `["@app/", "{{scopePath}}"]`,
+   把源码里写死的 `@app/server` 整体换成 `<scopePath>server`。
+2. **`{{var}}` 占位符**（后做）—— 来自 manifest 的 vars（`projectName`、`scope`、`scopePath`、`description`、`author`）,
    处理 `template/package.json` 这种明写占位符的地方。
+
+`scopePath` = `scope + '/'`（如 `@acme/`），空 scope 时是空串：`@app/server` 渲染成
+`@acme/server` 或裸名 `server`，都不会残留多余的斜杠（此前用 `{{scope}}/` 会在空 scope
+时留下 `/server`）。
 
 别名右值可以引用占位符,顺序就是上面这样。如果将来要加新别名,改 `template.manifest.json` 的 `aliases` 段即可。
 
@@ -88,7 +99,9 @@ cd /tmp/cnm-test && pnpm dev
 
 ## 改了 apps/ 或 packages/ 里的代码
 
-不需要任何操作 —— `template/apps` 和 `template/packages` 是软链接,源码改完模板自动跟随。
+不需要改 template/ -- prepack 在 pack 前把仓库根的 `apps/`、`packages/` 物化到
+`template/` 下。本地直跑 CLI 验证前先执行 `node scripts/prepack.mjs`（开发态
+template/ 下没有这两棵树），验证完 `node scripts/postpack.mjs` 清理。
 
 ## 加了新文件到模板
 
@@ -108,18 +121,18 @@ npm login
 npm publish --access public
 ```
 
-`pnpm pack` 出来的 tarball 包含 `files` 字段列出的项:
+`pnpm pack` 出来的 tarball 包含 `files` 字段列出的项（根配置文件 + scripts + template + 清单）:
 
-- `scripts/create/`
-- `scripts/prepack.mjs`、`scripts/postpack.mjs`
-- `template/`（prepack 后是真目录）
+- `.editorconfig`、`.gitattributes`、`.oxlintrc.json`、`.prettierignore`、`.prettierrc.json`
+- `docker-compose.yml`、`pnpm-workspace.yaml`、`tsconfig.base.json`、`tsconfig.json`
+- `LICENSE`、`README.md`
+- `scripts/create/`、`scripts/clean.mjs`、`scripts/prepack.mjs`、`scripts/postpack.mjs`
+- `template/`（prepack 后含物化的 apps/packages 真目录）
 - `template.manifest.json`
-- `README.md`
-- `LICENSE`
 
-`node_modules/`、`.git/`、`dist/`、`.tsbuildinfo` 都被 prepack 的 filter 跳过，不进 tarball。
+`node_modules/`、`.git/`、`dist/`、`*.tsbuildinfo`、`.env` 密钥文件都被 prepack 的 filter 跳过，不进 tarball。
 
-`prepack` 钩子在 pack 前自动把 `template/{apps,packages}` 从 symlink 转成真实目录拷贝（跳过 `node_modules` 等），`postpack` 钩子还原。`package.json#scripts` 里声明了这两个钩子，pnpm pack 会自动调用。
+`prepack` 钩子在 pack 前自动把仓库根的 `apps/`、`packages/` 拷进 `template/`（物化，跳过构建产物），`postpack` 钩子删除它们还原开发态，状态文件在 `node_modules/.prepack-state.json`（npm pack 永久排除 node_modules，所以不会进包）。`package.json#scripts` 里声明了这两个钩子，pnpm pack 会自动调用。
 
 ## 错误回滚
 
@@ -129,17 +142,36 @@ npm publish --access public
 
 ## 已知陷阱
 
-### 软链接在 tarball 里的行为
+### .npmrc 进不了 tarball
 
-`pnpm pack` 把 `template/apps` 这个 symlink 打进 tarball。**发布到 npm 后**，用户装包，npm 解压时这个 symlink 会变成相对路径 `../apps` —— 但用户的当前目录结构里没有 `apps`，所以会断。
+npm pack **永久排除**名为 `.npmrc` 的文件（无论 `files` 白名单怎么写，防 registry 配置泄漏）。
+模板又必须带 .npmrc，所以存成 `template/npmrc`，靠 manifest 的 `dest` 映射回 `.npmrc`。
 
-**解决方案**：`scripts/prepack.mjs` 在 pack 前把 symlink 替换成真实目录拷贝（跳过 `node_modules` / `dist` / `.tsbuildinfo`），pack 完 `scripts/postpack.mjs` 还原成 symlink。`package.json#scripts` 里声明了 `prepack` / `postpack` 钩子，pnpm pack 会自动调用。
+### .gitignore 安装后被改名
 
-如果 `postpack` 失败（比如 SIGKILL），`template/` 会留真目录占着，手动 `git checkout -- template/` 恢复。
+`.gitignore` 能进 tarball，但 **npm install 解压时会把包根的 `.gitignore` 改名成 `.npmignore`**（内容不变，npm/pnpm pack 的 tarball 都这样；嵌套目录里的 .gitignore 则直接丢弃）。CLI 按清单读源文件会 ENOENT 崩溃。所以同样存成 `template/gitignore`，靠 `dest` 映射回 `.gitignore`。
+
+仓库自身另有一份根 `.gitignore`（仅本仓库用，不在 `files` 白名单里，不进 tarball），
+负责忽略仓库自己的 `node_modules/`、Prisma `generated/`、物化产物等；改忽略规则时两份需同步。
+
+### Windows 上 symlink 不可靠
+
+git 在 Windows 上（默认无 SeCreateSymbolicLinkPrivilege）把 symlink checkout 成
+含目标路径文本的普通文件；CI/协作者克隆后 `template/apps` 不是链接而是几字节的
+文本文件，symlink 方案直接失效。
+
+**解决方案**：放弃 symlink，`scripts/prepack.mjs` 在 pack 前把仓库根的 `apps/`、
+`packages/` **物化**（真实拷贝）到 `template/` 下，`scripts/postpack.mjs` 删除还原。
+物化目录已被 `.gitignore` 忽略，不进 git。
+
+如果 `postpack` 失败（比如 SIGKILL），手动清理：
+`rm -rf template/apps template/packages node_modules/.prepack-state.json`。
+
 
 ## TODO（后续优化方向）
 
-- [x] 加 `prepack` 脚本，发布前把 `template/{apps,packages}` 从 symlink 转成真实拷贝
+- [x] 加 `prepack` 脚本，发布前把仓库根 `apps/`、`packages/` 物化到 `template/` 下
+- [x] `--no-scope`：空 scope 支持，别名替换用 `scopePath`（scope+斜杠或空串）避免残留斜杠
 - [x] `--git` 选项：生成完自动 `git init`（不做 commit）
 - [x] `--install` 选项：生成完直接 `pnpm install`
 - [x] 错误恢复：拷贝/git init 失败时回滚已生成的文件；install 失败不参与回滚

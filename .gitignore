@@ -1,99 +1,44 @@
-# --- Prisma ---
-generated/
-.zcode
-# --- Logs / runtime ---
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-pids
-*.pid
-*.seed
-*.pid.lock
+# 本仓库自身的忽略规则。
+# 注意：这份文件不进 npm 包（package.json#files 白名单未列出它）；
+# 生成项目用的 .gitignore 在 template/gitignore（manifest 的 dest 映射回 .gitignore）。
+# 改模板忽略规则请改那份，两份需人工保持同步。
 
-# --- Coverage ---
-coverage
-*.lcov
-.nyc_output
-lib-cov
-
-# --- Dependencies ---
+# Dependencies / build
 node_modules/
-jspm_packages/
-web_modules/
-.pnpm-store/
-
-# --- TypeScript / Oxlint caches ---
+dist/
 *.tsbuildinfo
 .oxlintcache
 
-# --- Build output ---
-dist
-dist-ssr
-build
-.next
-out
-.nuxt
-.vuepress/dist
-.serverless/
-.tern-port
+# Prisma generated client
+generated/
 
-# --- Env ---
+# Env secrets（绝不提交）
 .env
 .env.*
 !.env.example
 
-# --- Temp ---
+# Logs / coverage / temp
+logs/
+*.log
+coverage/
 .temp
 .tmp
 .cache
-.parcel-cache
 
-# --- Tool caches ---
-.eslintcache
-.microbundle.cache/
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
-# --- Pkg tarballs ---
+# Pkg tarballs
 *.tgz
 
-# --- Yarn v2 ---
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
-
-# --- OS ---
+# OS / IDE
 .DS_Store
-
-# --- IDE ---
 .idea
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
-# --- Avoid nested VCS inside a workspace package (defensive) ---
-**/packages/**/.git/
-**/apps/**/.git/
-
-# --- Defensive: TS source-only packages should not contain emitted .js files ---
-**/packages/*/src/**/*.js
-**/packages/*/src/**/*.js.map
-**/packages/*/src/**/*.d.ts
-
-# --- CodeGraph (local code intelligence index, do not commit) ---
+# Local tooling
 .codegraph/
+.zcode/
 
-# --- create-nest-monorepo CLI artifacts ---
-.prepack-state.json
+# create-nest-monorepo prepack 物化产物（postpack 会删；中断时防误提交）
+template/apps/
+template/packages/

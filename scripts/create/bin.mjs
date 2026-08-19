@@ -15,7 +15,8 @@
 //   6. 提示用户下一步
 //
 // 错误回滚策略：
-//   - 拷贝或 git init 失败 → 删除整个 destDir（粗粒度回滚）
+//   - 拷贝或 git init 失败 → 回滚 destDir：目录原本非空（--force 写入）则保留不删，
+//     原本不存在/为空则整个删除（粗粒度回滚）
 //   - pnpm install 失败 → 不回滚（保留项目，用户大概率想看错误信息自己修）
 //   - 用户传 . 或路径等同于 cwd → 拒绝执行（避免误删当前目录）
 
@@ -64,11 +65,10 @@ function runCommand(cmd, args, cwd) {
   });
 }
 
-async function dirExistsAndEmpty(p) {
+async function dirExists(p) {
   try {
     const s = await stat(p);
-    if (!s.isDirectory()) return false;
-    return true;
+    return s.isDirectory();
   } catch {
     return false;
   }
@@ -91,7 +91,16 @@ function assertDestSafe(dest) {
   // —— 但实际上只有 dest === cwd 会引发 rm -rf 的灾难，祖先目录的可能性较低（用户主动传了绝对路径），先不处理。
 }
 
-async function rollback(dest, reason) {
+/**
+ * 回滚。preExisting = 目标目录在生成前就非空（--force 写入场景）：
+ * 此时绝不能整目录删除，保留用户原有文件，只报告失败。
+ */
+async function rollback(dest, preExisting, reason) {
+  if (preExisting) {
+    console.warn(warn(`失败：${reason}`));
+    console.warn(warn(`目标目录 ${dest} 原本非空，已保留（未删除你的原有文件）。`));
+    return;
+  }
   console.warn(warn(`回滚 ${dest}（${reason}）`));
   try {
     await rm(dest, { recursive: true, force: true });
@@ -107,11 +116,13 @@ async function main() {
 
   assertDestSafe(dest);
 
-  // 目标目录检查
-  const exists = await dirExistsAndEmpty(dest);
-  if (exists && !args.force) {
+  // 目标目录检查：非空目录需 --force；preExisting 记录"原本就非空"，
+  // 回滚时用它保护用户原有文件不被整目录删除
+  let preExisting = false;
+  if (await dirExists(dest)) {
     const entries = await readdir(dest);
-    if (entries.length > 0) {
+    preExisting = entries.length > 0;
+    if (preExisting && !args.force) {
       throw new Error(`目标目录 ${dest} 已存在且非空。使用 --force 强制写入。`);
     }
   }
@@ -120,7 +131,7 @@ async function main() {
     console.log(warn('dry-run 模式，不会写入任何文件'));
     console.log(info('计划生成:'));
     console.log(info(`  目录: ${dest}`));
-    console.log(info(`  变量: ${JSON.stringify(vars)}`));
+    console.log(info(`  变量: ${JSON.stringify({ ...vars, scopePath: undefined })}`));
     if (args.git) console.log(info('  之后: git init'));
     if (args.install) console.log(info('  之后: pnpm install'));
     return;
@@ -135,7 +146,7 @@ async function main() {
       log: (m) => console.log(ok(m.replace(/^  \+ /, '')))
     });
   } catch (err) {
-    await rollback(dest, `scaffold 失败: ${err.message}`);
+    await rollback(dest, preExisting, `scaffold 失败: ${err.message}`);
     throw err;
   }
 
@@ -146,7 +157,7 @@ async function main() {
     console.log(step('git init'));
     const code = await runCommand('git', ['init'], dest);
     if (code !== 0) {
-      await rollback(dest, 'git init 失败');
+      await rollback(dest, preExisting, 'git init 失败');
       throw new Error('git init 失败，已回滚生成的文件。确认 git 已安装且在 PATH 中。');
     }
     console.log(ok('git init 完成（未做首次提交，由你控制 commit 信息）'));
@@ -171,7 +182,7 @@ async function main() {
   if (!args.git) console.log(`  ${info('git init')}    ${c.dim}# 可选${c.reset}`);
   console.log(`  ${info('pnpm dev')}\n`);
 
-  if (!vars.scope || !vars.scope.startsWith('@')) {
+  if (!vars.scope) {
     console.log(warn('注意: scope 为空，生成的项目里各包将是裸名（无 @scope/ 前缀）。'));
     console.log(warn('      pnpm workspace 仍可工作，但 npm 发布会受限。'));
   }

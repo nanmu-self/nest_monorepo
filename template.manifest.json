@@ -1,17 +1,19 @@
 {
   "// 用途": "create-nest-monorepo 模板清单。CLI 按本清单把仓库内容拷到目标目录，并对标注为 text 的文件做 {{var}} 占位符替换。",
-  "// 维护": "改模板时,新增/删除文件要同步更新本清单。apps/ 与 packages/ 走整体目录拷贝，不列在内。",
-  "// aliases": "源码里写死的别名映射。在 {{var}} 替换之前进行。所以别名的右边能引用占位符，如 @app/ → {{scope}}/",
+  "// 维护": "改模板时,新增/删除文件要同步更新本清单。apps/ 与 packages/ 由 prepack 物化到 template/ 下，走整体目录拷贝，不列在 files 里。",
+  "// aliases": "源码里写死的别名映射。在 {{var}} 替换之前进行。别名的右边能引用占位符，如 @app/ -> {{scopePath}}（scopePath = scope + '/'，空 scope 时为空串：@app/server -> acme/server 或裸名 server，都不残留多余斜杠）",
+  "// npmrc": "npm pack 会永久排除名为 .npmrc 的文件（防 registry 配置泄漏），所以模板里叫 template/npmrc，靠 dest 映射回 .npmrc。",
+  "// gitignore": "同理：包根的 .gitignore 进 tarball 后，npm install 时会被改名为 .npmignore（嵌套的则直接丢弃）。所以也叫 template/gitignore，靠 dest 映射回 .gitignore。",
 
   "aliases": [
-    ["@app/", "{{scope}}/"]
+    ["@app/", "{{scopePath}}"]
   ],
 
   "files": [
     { "src": ".editorconfig", "kind": "text" },
     { "src": ".gitattributes", "kind": "text" },
-    { "src": ".gitignore", "kind": "text" },
-    { "src": ".npmrc", "kind": "text" },
+    { "src": "template/gitignore", "kind": "text", "dest": ".gitignore" },
+    { "src": "template/npmrc", "kind": "text", "dest": ".npmrc" },
     { "src": ".oxlintrc.json", "kind": "text" },
     { "src": ".prettierignore", "kind": "text" },
     { "src": ".prettierrc.json", "kind": "text" },
@@ -35,7 +37,6 @@
     ".git",
     ".codegraph",
     "dist",
-    ".tsbuildinfo",
     "*.tsbuildinfo"
   ]
 }
