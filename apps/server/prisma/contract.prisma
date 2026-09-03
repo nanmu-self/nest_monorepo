@@ -1,0 +1,25 @@
+// use prisma-next
+//
+// 数据契约（Prisma 8）。
+//
+// 与 Prisma 7 schema.prisma 的差异：
+//   - 无 generator / datasource 块，连接串由 prisma.config.ts 提供；
+//   - 顶部必须声明 `// use prisma-next`；
+//   - v8 暂无 @updatedAt，updated_at 用 @default(now())，
+//     更新语义由应用层负责写入。
+//
+// 改完契约后依次执行：
+//   pnpm db:emit        # 产出 prisma/contract.json + contract.d.ts（需提交进 git）
+//   pnpm migrate:create # 生成迁移计划（开发期也可用 `prisma db update` 直改）
+//   pnpm migrate:apply  # 应用迁移
+model User {
+  id            Int      @id @default(autoincrement())
+  /// bcrypt 加密后的密码
+  password_hash VarChar(255)
+  created_at    Timestamptz(6) @default(now())
+  updated_at    Timestamptz(6) @default(now())
+
+  email VarChar(128) @unique
+
+  @@map("users")
+}

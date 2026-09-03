@@ -9,7 +9,7 @@ dist/
 *.tsbuildinfo
 .oxlintcache
 
-# Prisma generated client
+# Prisma 7 时代的生成目录（v8 已改为 contract 契约产物，需提交）
 generated/
 
 # Env secrets（绝不提交）

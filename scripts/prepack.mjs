@@ -34,7 +34,7 @@ const STATE_FILE = join(REPO_ROOT, 'node_modules', '.prepack-state.json');
 /** 路径是否应该被跳过（字面量名 + *.ext 通配，与 copy.mjs 保持一致） */
 function shouldSkip(name, skipList) {
   return skipList.some(
-    (pat) => pat === name || (pat.startsWith('*.') && name.endsWith(pat.slice(1)))
+    (pat) => pat === name || (pat.startsWith('*.') && name.endsWith(pat.slice(1))),
   );
 }
 
@@ -78,7 +78,7 @@ async function main() {
       filter: (src) => {
         const base = src.split(/[\\/]/).pop();
         return !shouldSkip(base, skipList) && !isEnvSecret(base);
-      }
+      },
     });
     materialized.push(d.src);
   }

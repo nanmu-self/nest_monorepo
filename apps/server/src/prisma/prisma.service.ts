@@ -1,22 +1,48 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@/generated/prisma/client';
-import { DATABASE_URL, IS_PRODUCTION } from '@/config/env';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import postgres from '@prisma/orm-postgres/runtime';
+import type { PostgresClient } from '@prisma/orm-postgres/runtime';
+import type { Contract } from '../../prisma/contract';
+import contractJson from '../../prisma/contract.json';
+import { DATABASE_URL } from '@/config/env';
 
+/**
+ * Prisma 8 数据库服务。
+ *
+ * Prisma 8 不再生成 PrismaClient 类，取而代之的是 `@prisma/orm-postgres`
+ * runtime 的 `postgres()` 工厂：传入 contract.json + contract 类型，
+ * 得到的客户端直接暴露 `.orm`（模型查询）与 `.sql`（类型化 SQL builder）。
+ *
+ * 与 Prisma 7 的差异：
+ *   - 不再有 adapter（@prisma/adapter-pg），连接由 runtime 内部管理；
+ *   - 日志配置（log: ['query', ...]）不复存在，查询级观测改用 middleware；
+ *   - onModuleInit 里显式 connect()，onModuleDestroy 里 close()。
+ *
+ * 查询写法示例（原来是 prisma.user.findUnique）：
+ *   this.orm.User.where({ email }).first()
+ */
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  constructor() {
-    super({
-      adapter: new PrismaPg({ connectionString: DATABASE_URL }),
-      log: IS_PRODUCTION ? ['error'] : ['query', 'error', 'warn'],
-    });
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  readonly client: PostgresClient<Contract> = postgres<Contract>({
+    contractJson,
+    url: DATABASE_URL,
+  });
+
+  /** 模型查询入口（等价于 Prisma 7 的 prisma.user.*） */
+  get orm(): PostgresClient<Contract>['orm']['public']['User'] {
+    return this.client.orm.public.User;
   }
 
-  async onModuleInit() {
-    await this.$connect();
+  onModuleInit(): Promise<unknown> {
+    // 打开连接池；查询在签名校验通过后即可执行
+    return this.client.connect();
   }
 
-  async onModuleDestroy() {
-    await this.$disconnect();
+  onModuleDestroy(): Promise<void> {
+    return this.client.close();
+  }
+
+  /** 健康检查用 ping：挑最便宜的一条查询验证连通性 */
+  async ping() {
+    await this.client.runtime().execute(this.client.sql.public.users.select('id').limit(1).build());
   }
 }

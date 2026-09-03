@@ -40,6 +40,8 @@ async function main() {
 
 main().catch((err) => {
   console.error('postpack failed:', err);
-  console.error('提示: 手动清理: rm -rf template/apps template/packages node_modules/.prepack-state.json');
+  console.error(
+    '提示: 手动清理: rm -rf template/apps template/packages node_modules/.prepack-state.json',
+  );
   process.exit(1);
 });

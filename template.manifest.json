@@ -5,9 +5,7 @@
   "// npmrc": "npm pack 会永久排除名为 .npmrc 的文件（防 registry 配置泄漏），所以模板里叫 template/npmrc，靠 dest 映射回 .npmrc。",
   "// gitignore": "同理：包根的 .gitignore 进 tarball 后，npm install 时会被改名为 .npmignore（嵌套的则直接丢弃）。所以也叫 template/gitignore，靠 dest 映射回 .gitignore。",
 
-  "aliases": [
-    ["@app/", "{{scopePath}}"]
-  ],
+  "aliases": [["@app/", "{{scopePath}}"]],
 
   "files": [
     { "src": ".editorconfig", "kind": "text" },
@@ -32,11 +30,5 @@
     { "src": "template/packages", "dest": "packages" }
   ],
 
-  "skipInDirs": [
-    "node_modules",
-    ".git",
-    ".codegraph",
-    "dist",
-    "*.tsbuildinfo"
-  ]
+  "skipInDirs": ["node_modules", ".git", ".codegraph", "dist", "*.tsbuildinfo"]
 }

@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository
 
-pnpm workspace monorepo template for full-stack admin services (general-purpose starter, cut from a short-link project). Runtime targets Node ≥ 22.12 and pnpm ≥ 11. Root package is `app`; workspaces live under `apps/*` and `packages/*`.
+pnpm workspace monorepo template for full-stack admin services (general-purpose starter, cut from a short-link project). Runtime targets Node ≥ 24 (Prisma 8 hard requirement) and pnpm ≥ 11. Root package is `app`; workspaces live under `apps/*` and `packages/*`.
 
-- `apps/server` - NestJS 11 backend (`@app/server`), SWC-compiled, Prisma 7 + PostgreSQL.
+- `apps/server` - NestJS 11 backend (`@app/server`), SWC-compiled, Prisma 8 (RC, contract workflow) + PostgreSQL.
 - `apps/web-admin` - React 19 admin UI (`@app/web-admin`) built with Vite 8 and the React Compiler Babel plugin.
 - `packages/shared` - `@app/shared`, published via tsup + tsc into `dist/` and consumed as `workspace:*`. Uses **subpath exports** to keep framework-specific code isolated: root (`@app/shared`) exports framework-agnostic types/classes (`HttpError`, `ErrorCode` enum, API DTO types — `UserDTO`, `LoginRequest`, `LoginResponse`, `ApiResponse`, `UploadTokenResponse`); `@app/shared/http` exports the alova-based `createHttp` client. Server-side code that only needs shared types will not pull alova into its module graph.
 - `packages/config-tailwind` - `@app/config-tailwind`, Tailwind 4 design tokens (`@theme` + `@layer components`) bundled via tsup. Consumed as `@import '@app/config-tailwind/styles.css'` from the consumer's CSS entry; has no JS API beyond the empty `index.ts` placeholder.
@@ -25,10 +25,10 @@ Run from the repo root unless noted:
 
 Inside `apps/server`:
 
-- `pnpm migrate:create [--name <slug>]` - `prisma migrate dev`.
-- `pnpm db:pull` - reverse-sync `schema.prisma` from a live DB.
-- `pnpm db:comment:pull` - pull column comments via `prisma-commenter`.
-- `postinstall` runs `prisma generate`, so a fresh `pnpm install` populates `apps/server/src/generated/prisma/` (gitignored).
+- `pnpm migrate:create` - `prisma migration plan`：把契约变更生成可审查的 TS 迁移（graph-based）。
+- `pnpm migrate:apply` - `prisma db migrate`：按迁移图推进数据库。
+- `pnpm db:emit` / `db:infer` / `db:sign` - 契约编译 / 从线上库反推契约 / 给数据库写签名。
+- `postinstall` runs `prisma contract emit`，重新产出 `prisma/contract.json` + `contract.d.ts`（两个都要提交进 git）。
 
 There is no test runner configured; do not fabricate a `pnpm test` command.
 
@@ -45,8 +45,9 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 - Entry is `src/main.ts`, which delegates to `setupApp()` in `src/bootstrap.ts`. **dotenv is NOT loaded here** — `@/config/env` loads it on its own (top of the module), so anywhere that imports `@/config/env` triggers the load regardless of import order. `setupApp` sets global prefix `api`, URI versioning with `defaultVersion: ['1', '2']` (so any route without `@Version()` is served under both `/api/v1` and `/api/v2`), CORS from `CORS_ORIGIN` (comma-split), and a `ValidationPipe` with `whitelist`, `transform`, `forbidNonWhitelisted`. Reuse `setupApp` if you add a second entry (e.g. tests).
 - Nest CLI uses the SWC builder (`nest-cli.json` -> `.swcrc`) with `legacyDecorator` + `decoratorMetadata` for Nest DI. If you add server-side decorators or reflection, keep those flags aligned in both `.swcrc` and `apps/server/tsconfig.json`.
 - Prisma is wrapped in `PrismaModule` (`src/prisma/prisma.module.ts`), marked `@Global()`. It does **not** provide `DATABASE_URL` — that env var is validated at startup by `@/config/env` (which throws if missing) and `PrismaService` imports the already-validated `DATABASE_URL` constant. Consumers inject `PrismaService` directly; do not re-import `PrismaModule` into feature modules.
-- Prisma 7 does not read `env()` inside `schema.prisma`; the URL is injected via `apps/server/prisma.config.ts` (`datasource.url: process.env.DATABASE_URL`). Update that file if you need per-env connection logic.
-- Generated Prisma types live at `src/generated/prisma/` and are consumed via the `@/generated/prisma/client` path. Directory is gitignored - always run `pnpm install` (or `prisma generate` inside `apps/server`) after pulling schema changes.
+- **Prisma 8（contract 工作流）**：数据模型写在 `prisma/contract.prisma`（PSL，顶部必须 `// use prisma-next`）。没有 PrismaClient 类：`PrismaService` 用 `@prisma/orm-postgres/runtime` 的 `postgres()` 工厂创建客户端，`onModuleInit` 里 `connect()`。查询写法 `prismaService.orm.where({...}).first()`（内部即 `db.orm.public.User`）。改契约后先 `pnpm db:emit` 再做迁移。
+- PSL 8 语法注意：原生类型写在类型位置（`VarChar(128)`、`Timestamptz(6)`，不是 `@db.VarChar`）；没有 `@updatedAt`；`VarChar(N)` 在 TS 侧是 branded string，写入处需 `as Varchar<N>` 断言；timestamptz 读出是 `Temporal.Instant`（不是 Date）。连接串与扩展在 `prisma.config.ts`（`definePrismaConfig` + `@prisma/orm-postgres/config`），该文件被排除在 tsconfig 之外（CLI 经 jiti 评估）。
+- `prisma/contract.json` + `contract.d.ts` 是确定性产物，提交进版本控制；`prisma db update`（开发直改）会同步写数据库签名。`@nestjs/terminus` 的 `PrismaHealthIndicator` 依赖 v7 客户端已弃用，健康检查走 `HealthController` 里的自定义指标（`PrismaService.ping()`）。
 - Feature modules follow the `users/` shape: `*.module.ts`, `*.controller.ts`, `*.service.ts`, wired into `AppModule.imports`. Services select explicit columns to avoid leaking sensitive fields (see `UsersService.findAll` excluding `password_hash`) - preserve that habit when adding new tables.
 
 ### Web Admin (`apps/web-admin`)

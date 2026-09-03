@@ -19,5 +19,7 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": ["src", "prisma/**/*.ts", "prisma/contract.json"],
+  "exclude": ["prisma.config.ts", "node_modules", "dist"]
 }

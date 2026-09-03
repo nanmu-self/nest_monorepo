@@ -167,7 +167,6 @@ git 在 Windows 上（默认无 SeCreateSymbolicLinkPrivilege）把 symlink chec
 如果 `postpack` 失败（比如 SIGKILL），手动清理：
 `rm -rf template/apps template/packages node_modules/.prepack-state.json`。
 
-
 ## TODO（后续优化方向）
 
 - [x] 加 `prepack` 脚本，发布前把仓库根 `apps/`、`packages/` 物化到 `template/` 下

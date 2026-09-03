@@ -22,7 +22,7 @@ export const MANIFEST_PATH = join(REPO_ROOT, 'template.manifest.json');
 /** 路径是否应该被跳过 */
 function shouldSkip(name, skipList) {
   return skipList.some(
-    (pat) => pat === name || (pat.startsWith('*.') && name.endsWith(pat.slice(1)))
+    (pat) => pat === name || (pat.startsWith('*.') && name.endsWith(pat.slice(1))),
   );
 }
 
@@ -75,11 +75,31 @@ async function copyOneFile(src, dest, vars, aliases = []) {
 /** 简易文本/二进制判定：扩展名 + 头 8KB 是否含 NUL 字节 */
 function isProbablyText(buf, filePath) {
   const textExts = new Set([
-    '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
-    '.json', '.md', '.mdx', '.css', '.scss',
-    '.yml', '.yaml', '.html', '.svg', '.txt',
-    '.sh', '.cjs', '.prisma', '.env', '.example',
-    '.gitignore', '.gitattributes', '.npmrc', '.editorconfig'
+    '.ts',
+    '.tsx',
+    '.js',
+    '.jsx',
+    '.mjs',
+    '.cjs',
+    '.json',
+    '.md',
+    '.mdx',
+    '.css',
+    '.scss',
+    '.yml',
+    '.yaml',
+    '.html',
+    '.svg',
+    '.txt',
+    '.sh',
+    '.cjs',
+    '.prisma',
+    '.env',
+    '.example',
+    '.gitignore',
+    '.gitattributes',
+    '.npmrc',
+    '.editorconfig',
   ]);
   const ext = filePath.toLowerCase().match(/\.[^.]+$/)?.[0];
   if (ext && textExts.has(ext)) return true;
@@ -128,7 +148,9 @@ export async function scaffold(vars, destDir, opts = {}) {
       if (err.code === 'ENOENT') {
         // 开发态源码直跑（未经 prepack）：template/apps 不存在。
         // pack 后的包里 prepack 已物化，不会走到这里。
-        console.warn(`  ! 跳过 ${d.src}/（源目录不存在，本地直跑请先执行 node scripts/prepack.mjs）`);
+        console.warn(
+          `  ! 跳过 ${d.src}/（源目录不存在，本地直跑请先执行 node scripts/prepack.mjs）`,
+        );
         continue;
       }
       throw err;

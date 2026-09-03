@@ -22,23 +22,57 @@ const NO_SCOPE_INPUT = new Set(['-', 'none', 'no', '()']);
  * 约定：第一个非 flag 位置参数是目标目录；--name/--scope/--description/--author 覆盖提示。
  */
 export function parseArgs(argv) {
-  const args = { _: [], name: undefined, scope: undefined, description: undefined, author: undefined, yes: false, dryRun: false, force: false, git: false, install: false, help: false };
+  const args = {
+    _: [],
+    name: undefined,
+    scope: undefined,
+    description: undefined,
+    author: undefined,
+    yes: false,
+    dryRun: false,
+    force: false,
+    git: false,
+    install: false,
+    help: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     switch (a) {
-      case '--name': args.name = argv[++i]; break;
-      case '--scope': args.scope = argv[++i]; break;
-      case '--no-scope': args.scope = ''; break;
-      case '--description': args.description = argv[++i]; break;
-      case '--author': args.author = argv[++i]; break;
+      case '--name':
+        args.name = argv[++i];
+        break;
+      case '--scope':
+        args.scope = argv[++i];
+        break;
+      case '--no-scope':
+        args.scope = '';
+        break;
+      case '--description':
+        args.description = argv[++i];
+        break;
+      case '--author':
+        args.author = argv[++i];
+        break;
       case '--yes':
-      case '-y': args.yes = true; break;
-      case '--dry-run': args.dryRun = true; break;
-      case '--force': args.force = true; break;
-      case '--git': args.git = true; break;
-      case '--install': args.install = true; break;
+      case '-y':
+        args.yes = true;
+        break;
+      case '--dry-run':
+        args.dryRun = true;
+        break;
+      case '--force':
+        args.force = true;
+        break;
+      case '--git':
+        args.git = true;
+        break;
+      case '--install':
+        args.install = true;
+        break;
       case '--help':
-      case '-h': args.help = true; break;
+      case '-h':
+        args.help = true;
+        break;
       default:
         if (a.startsWith('-')) {
           throw new Error(`未知选项: ${a}`);
@@ -86,17 +120,19 @@ function ask(rl, question, defaultValue) {
 
 function deriveDefaults(raw) {
   // 目录名 = path 最后一段，转成合法 npm 名
-  const base = (raw.split(/[\\/]/).pop() || 'my-app')
-    .toLowerCase()
-    .replace(/[^a-z0-9-._~]/g, '-')
-    .replace(/^[-._]+/, '')
-    .replace(/[-._]+$/, '') || 'my-app';
+  const base =
+    (raw.split(/[\\/]/).pop() || 'my-app')
+      .toLowerCase()
+      .replace(/[^a-z0-9-._~]/g, '-')
+      .replace(/^[-._]+/, '')
+      .replace(/[-._]+$/, '') || 'my-app';
   return { name: base, scope: `@${base}` };
 }
 
 function validateName(name) {
   if (!name) return '项目名不能为空';
-  if (!NPM_NAME_RE.test(name)) return `项目名 "${name}" 不是合法 npm 包名（小写字母/数字/-_.~，可带 scope）`;
+  if (!NPM_NAME_RE.test(name))
+    return `项目名 "${name}" 不是合法 npm 包名（小写字母/数字/-_.~，可带 scope）`;
   return null;
 }
 
@@ -171,8 +207,8 @@ export async function collectAnswers(argv) {
         scope,
         scopePath: scope ? scope + '/' : '',
         description,
-        author
-      }
+        author,
+      },
     };
   } finally {
     rl.close();

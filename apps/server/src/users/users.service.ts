@@ -8,14 +8,7 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<UserDTO[]> {
-    const users = await this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        created_at: true,
-        updated_at: true,
-      },
-    });
+    const users = await this.prisma.orm.select('id', 'email', 'created_at', 'updated_at').all();
     return users.map(mapUserToDTO);
   }
 }

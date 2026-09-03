@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { UserDTO, LoginRequest, LoginResponse } from '@app/shared';
 import { ErrorCode } from '@app/shared';
+import type { Varchar } from '@prisma/orm-postgres/target/codec-types';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BizException } from '@/common/biz-exception';
 import { mapUserToDTO } from '@/users/user.mapper';
@@ -23,9 +24,7 @@ export class AuthService {
    */
   async login(data: LoginRequest): Promise<LoginResponse> {
     // 查找用户
-    const user = await this.prisma.user.findUnique({
-      where: { email: data.email },
-    });
+    const user = await this.prisma.orm.where({ email: data.email as Varchar<128> }).first();
 
     if (!user) {
       throw new BizException(
@@ -67,9 +66,7 @@ export class AuthService {
    * 让客户端能明确区分“凭证已失效，需重新登录”与“接口临时故障”。
    */
   async getProfile(userId: number): Promise<UserDTO> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await this.prisma.orm.first({ id: userId });
 
     if (!user) {
       throw new BizException(

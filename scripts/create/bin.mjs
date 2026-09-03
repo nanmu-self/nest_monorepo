@@ -33,7 +33,7 @@ const c = {
   yellow: '\x1b[33m',
   dim: '\x1b[2m',
   red: '\x1b[31m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 const ok = (m) => `${c.green}✔${c.reset} ${m}`;
 const info = (m) => `${c.dim}${m}${c.reset}`;
@@ -55,7 +55,7 @@ function runCommand(cmd, args, cwd) {
     const child = spawn(cmd, args, {
       cwd,
       stdio: 'inherit',
-      shell: process.platform === 'win32'
+      shell: process.platform === 'win32',
     });
     child.on('close', (code) => resolve(code ?? 1));
     child.on('error', (err) => {
@@ -143,7 +143,7 @@ async function main() {
   // ---- 阶段 1: scaffold（拷贝 + 替换）----
   try {
     await scaffold(vars, dest, {
-      log: (m) => console.log(ok(m.replace(/^  \+ /, '')))
+      log: (m) => console.log(ok(m.replace(/^  \+ /, ''))),
     });
   } catch (err) {
     await rollback(dest, preExisting, `scaffold 失败: ${err.message}`);
