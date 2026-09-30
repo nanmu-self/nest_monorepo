@@ -2,6 +2,23 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+# 全仓库只允许一个 react/react-dom 实例。
+# alova 的 stateshook（alova/react）没有把 react 声明为 peerDependency，
+# 间接依赖（如 Prisma dev 工具链里的 ink）带进来的第二个 react 版本会被 pnpm
+# 的 hidden hoist 提供给 alova，Vite 预构建时把它打进 alova_react chunk，
+# 运行时出现两个 React 副本，hooks 的 dispatcher 为 null，
+# 报 "Cannot read properties of null (reading 'useRef')".
+#
+# alova 同理必须单实例：createAlova 把 statesHook 存在模块级变量里，
+# useRequest（alova/client）只读自己副本里的那个变量。
+# 一旦 web-admin 与 @app/shared 解析到不同版本（如只给一边升级），
+# 实例在 A 副本创建、hook 在 B 副本执行，B 的模块变量从未赋值，
+# 报 "`statesHook` is not set in alova instance"。
+overrides:
+  react: 19.2.7
+  react-dom: 19.2.7
+  alova: 3.5.5
+
 # 允许执行 install/postinstall 脚本的包（pnpm 11 的 allowBuilds，map 形式，
 # 取代旧版列表形式的 onlyBuiltDependencies；两处维护同一清单必然漂移，只保留这一份）。
 allowBuilds:
@@ -15,3 +32,5 @@ allowBuilds:
   # @nestjs/terminus 依赖的遥测包：显式禁用其脚本（false），
   # 既消除 install 时的 ERR_PNPM_IGNORED_BUILDS 提示，也不向第三方上报安装数据。
   '@scarf/scarf': false
+  msgpackr-extract: true
+  workerd: true

@@ -18,7 +18,11 @@ import { DATABASE_URL } from '@/config/env';
  *   - onModuleInit 里显式 connect()，onModuleDestroy 里 close()。
  *
  * 查询写法示例（原来是 prisma.user.findUnique）：
- *   this.orm.User.where({ email }).first()
+ *   this.orm.public.User.where({ email }).first()
+ *   this.orm.public.User.select('id', 'email').all()
+ *
+ * 注意：Collection 是链式构造器，终端方法是 .all() / .first() / .count() 等，
+ * 不是 Prisma 7 的 .findMany() / .findFirst()。
  */
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
@@ -27,9 +31,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     url: DATABASE_URL,
   });
 
-  /** 模型查询入口（等价于 Prisma 7 的 prisma.user.*） */
-  get orm(): PostgresClient<Contract>['orm']['public']['User'] {
-    return this.client.orm.public.User;
+  /** 模型查询入口（等价于 Prisma 7 的 prisma.public.*） */
+  get orm(): PostgresClient<Contract>['orm']['public'] {
+    return this.client.orm.public;
   }
 
   onModuleInit(): Promise<unknown> {

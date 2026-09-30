@@ -24,7 +24,10 @@ export class AuthService {
    */
   async login(data: LoginRequest): Promise<LoginResponse> {
     // 查找用户
-    const user = await this.prisma.orm.where({ email: data.email as Varchar<128> }).first();
+    const user = await this.prisma.orm.User
+      .where((u) => u.email.eq(data.email as Varchar<128>))
+      .select('id', 'email', 'password_hash', 'created_at', 'updated_at')
+      .first();
 
     if (!user) {
       throw new BizException(
@@ -66,7 +69,10 @@ export class AuthService {
    * 让客户端能明确区分“凭证已失效，需重新登录”与“接口临时故障”。
    */
   async getProfile(userId: number): Promise<UserDTO> {
-    const user = await this.prisma.orm.first({ id: userId });
+    const user = await this.prisma.orm.User
+      .where((u) => u.id.eq(userId))
+      .select('id', 'email', 'created_at', 'updated_at')
+      .first();
 
     if (!user) {
       throw new BizException(

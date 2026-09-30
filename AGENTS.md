@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 pnpm workspace monorepo template for full-stack admin services (general-purpose starter, cut from a short-link project). Runtime targets Node ≥ 24 (Prisma 8 hard requirement) and pnpm ≥ 11. Root package is `app`; workspaces live under `apps/*` and `packages/*`.
 
-- `apps/server` - NestJS 11 backend (`@app/server`), SWC-compiled, Prisma 8 (RC, contract workflow) + PostgreSQL.
+- `apps/server` - NestJS 11 backend (`@app/server`), SWC-compiled, Prisma 8 (contract workflow) + PostgreSQL.
 - `apps/web-admin` - React 19 admin UI (`@app/web-admin`) built with Vite 8 and the React Compiler Babel plugin.
 - `packages/shared` - `@app/shared`, published via tsup + tsc into `dist/` and consumed as `workspace:*`. Uses **subpath exports** to keep framework-specific code isolated: root (`@app/shared`) exports framework-agnostic types/classes (`HttpError`, `ErrorCode` enum, API DTO types — `UserDTO`, `LoginRequest`, `LoginResponse`, `ApiResponse`, `UploadTokenResponse`); `@app/shared/http` exports the alova-based `createHttp` client. Server-side code that only needs shared types will not pull alova into its module graph.
 - `packages/config-tailwind` - `@app/config-tailwind`, Tailwind 4 design tokens (`@theme` + `@layer components`) bundled via tsup. Consumed as `@import '@app/config-tailwind/styles.css'` from the consumer's CSS entry; has no JS API beyond the empty `index.ts` placeholder.
@@ -30,7 +30,7 @@ Inside `apps/server`:
 - `pnpm db:emit` / `db:infer` / `db:sign` - 契约编译 / 从线上库反推契约 / 给数据库写签名。
 - `postinstall` runs `prisma contract emit`，重新产出 `prisma/contract.json` + `contract.d.ts`（两个都要提交进 git）。
 
-There is no test runner configured; do not fabricate a `pnpm test` command.
+**Note:** There is no test runner configured; do not fabricate a `pnpm test` command.
 
 ## Architecture
 
@@ -45,10 +45,29 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 - Entry is `src/main.ts`, which delegates to `setupApp()` in `src/bootstrap.ts`. **dotenv is NOT loaded here** — `@/config/env` loads it on its own (top of the module), so anywhere that imports `@/config/env` triggers the load regardless of import order. `setupApp` sets global prefix `api`, URI versioning with `defaultVersion: ['1', '2']` (so any route without `@Version()` is served under both `/api/v1` and `/api/v2`), CORS from `CORS_ORIGIN` (comma-split), and a `ValidationPipe` with `whitelist`, `transform`, `forbidNonWhitelisted`. Reuse `setupApp` if you add a second entry (e.g. tests).
 - Nest CLI uses the SWC builder (`nest-cli.json` -> `.swcrc`) with `legacyDecorator` + `decoratorMetadata` for Nest DI. If you add server-side decorators or reflection, keep those flags aligned in both `.swcrc` and `apps/server/tsconfig.json`.
 - Prisma is wrapped in `PrismaModule` (`src/prisma/prisma.module.ts`), marked `@Global()`. It does **not** provide `DATABASE_URL` — that env var is validated at startup by `@/config/env` (which throws if missing) and `PrismaService` imports the already-validated `DATABASE_URL` constant. Consumers inject `PrismaService` directly; do not re-import `PrismaModule` into feature modules.
-- **Prisma 8（contract 工作流）**：数据模型写在 `prisma/contract.prisma`（PSL，顶部必须 `// use prisma-next`）。没有 PrismaClient 类：`PrismaService` 用 `@prisma/orm-postgres/runtime` 的 `postgres()` 工厂创建客户端，`onModuleInit` 里 `connect()`。查询写法 `prismaService.orm.where({...}).first()`（内部即 `db.orm.public.User`）。改契约后先 `pnpm db:emit` 再做迁移。
+- **Prisma 8（contract 工作流）**：数据模型写在 `prisma/contract.prisma`（PSL，顶部必须 `// use prisma-next`）。没有 PrismaClient 类：`PrismaService` 用 `@prisma/orm-postgres/runtime` 的 `postgres()` 工厂创建客户端，`onModuleInit` 里 `connect()`。`PrismaService.orm` getter 返回 `client.orm.public`（即 Namespace），业务代码通过 `this.prisma.orm.User` 访问模型 Collection。查询写法：
+  - `this.prisma.orm.User.where((u) => u.email.eq('test@example.com')).first()`
+  - `this.prisma.orm.User.select('id', 'email').where((u) => u.email.like(`%search%`)).limit(10).offset(20).all()`
+  - 终端方法：`.all()`（返回 AsyncIterableResult，可 await 得数组）、`.first()`（返回 Promise<Row | null>）、`.count()`、`.aggregate(...)` 等
+  - 链式方法：`.where(...)`、`.select(...)`、`.orderBy(...)`、`.limit(...)`、`.offset(...)`、`.cursor(...)`、`.include(...)`
+  - 操作符：`.eq()`, `.neq()`, `.gt()`, `.gte()`, `.lt()`, `.lte()`, `.like()`, `.ilike()`, `.in([...])`, `.isNull()`, `.isNotNull()`
+  - 改契约后先 `pnpm db:emit` 再做迁移。
 - PSL 8 语法注意：原生类型写在类型位置（`VarChar(128)`、`Timestamptz(6)`，不是 `@db.VarChar`）；没有 `@updatedAt`；`VarChar(N)` 在 TS 侧是 branded string，写入处需 `as Varchar<N>` 断言；timestamptz 读出是 `Temporal.Instant`（不是 Date）。连接串与扩展在 `prisma.config.ts`（`definePrismaConfig` + `@prisma/orm-postgres/config`），该文件被排除在 tsconfig 之外（CLI 经 jiti 评估）。
 - `prisma/contract.json` + `contract.d.ts` 是确定性产物，提交进版本控制；`prisma db update`（开发直改）会同步写数据库签名。`@nestjs/terminus` 的 `PrismaHealthIndicator` 依赖 v7 客户端已弃用，健康检查走 `HealthController` 里的自定义指标（`PrismaService.ping()`）。
 - Feature modules follow the `users/` shape: `*.module.ts`, `*.controller.ts`, `*.service.ts`, wired into `AppModule.imports`. Services select explicit columns to avoid leaking sensitive fields (see `UsersService.findAll` excluding `password_hash`) - preserve that habit when adding new tables.
+- `UsersService` 已支持分页（`page`/`pageSize`）与邮箱模糊搜索（`search`），前端 `UsersPage` 对应实现了搜索框、每页条数选择器和分页控件。新增列表接口时参考该形状。
+- **DTO 必须是 class**：全局 `ValidationPipe` 依赖 `emitDecoratorMetadata` 反射出的设计期类型做校验，interface 在编译期被擦除，会导致校验静默失效。SWC 构建器不支持 `@nestjs/swagger` 的 CLI 插件，所以 `@ApiProperty` / `@ApiPropertyOptional` 需要显式标注。
+
+#### Error handling & logging
+
+- **统一错误封套**：`AllExceptionFilter` 把所有异常包装成 `{ code, message, data? }`。`BizException` 携带业务码（>= 10000），普通 HTTP 异常的 code 等于 HTTP 状态码。生产环境 500 错误会脱敏。
+- **结构化日志**：`nestjs-pino` + `pino-http`，每个 HTTP 请求自动记一行（method、路径、状态码、耗时），携带自增 `reqId` 便于关联。敏感头（Authorization、Cookie）自动脱敏。健康检查路径不记访问日志。
+- **业务异常**：继承 `HttpException`，在响应体里同时携带业务码和 HTTP 状态码。详见 `src/common/biz-exception.ts`。
+- **Prisma 错误**：`AllExceptionFilter` 识别 Prisma 已知错误码（`P2002` 唯一约束冲突、`P2025` 记录未找到），映射为合适的 HTTP 状态码。
+
+#### Rate limiting
+
+- `@nestjs/throttler` 已安装，**当前仅在 `AuthModule` 配置**（登录接口限流：60 秒内最多 100 次）。其他接口暂无全局限流。若需全局限流，在 `AppModule` 导入 `ThrottlerModule` 并配置。
 
 ### Web Admin (`apps/web-admin`)
 
@@ -77,3 +96,72 @@ Both packages are CSS-first — `tsup` bundles the JS entry and `onSuccess` copi
 - oxlint config (`.oxlintrc.json`) enforces the `correctness` category as errors, plus `eqeqeq`, `no-var`, `prefer-const`, `no-unused-private-class-members`; `no-console` is a warning. `apps/web-admin/**` additionally enables the `react` plugin with `rules-of-hooks` and `only-export-components`.
 - Prettier is the source of truth for formatting; run `pnpm format` before committing.
 - Comments and docstrings in the existing code are written in Chinese - match that when editing nearby code.
+
+## Adding a new feature module (server)
+
+1. Create `src/<feature>/<feature>.module.ts`, `<feature>.controller.ts`, `<feature>.service.ts`
+2. Wire the module into `AppModule.imports`
+3. Add DTOs under `src/<feature>/dto/` — remember: **must be `class`**, not `interface`, for ValidationPipe to work. Add `@ApiProperty` / `@ApiPropertyOptional` for Swagger docs.
+4. Add shared contract types in `packages/shared/src/contracts/<feature>.ts` and re-export from `src/contracts/index.ts`
+5. Add business error codes in `packages/shared/src/constants/error-codes.ts` following the existing numeric ranges
+6. Use `PrismaService` for data access; select explicit columns to avoid leaking sensitive fields
+7. Throw `BizException` with business error codes for expected failures; let unexpected errors bubble to `AllExceptionFilter`
+
+## Adding a new page (web-admin)
+
+1. Create `src/pages/<page>/index.tsx` and add the route in `src/router/index.tsx`
+2. Add API functions in `src/api/<feature>.ts` using the shared `http` client
+3. Use `useRequest` from alova for data fetching; handle `loading`, `error`, and empty states
+4. Use shared UI components from `@app/ui` and styles from `@app/config-tailwind`
+5. For forms, use the `Field` family from `@app/ui` with `data-invalid` for error styling
+6. For error messages, use `resolveErrorMessage` from `@/lib/error-message` to map business codes to user-friendly text
+
+## Missing features & TODOs
+
+The following are **not yet implemented** and should not be assumed to exist:
+
+- **Dockerfiles**: Only `docker-compose.yml` exists (PostgreSQL only). No application Dockerfiles for server/web-admin.
+- **Tests**: No test runner (vitest/jest) configured. Do not write `pnpm test` scripts.
+- **OpenAPI codegen**: Frontend API clients (`apps/web-admin/src/api/*.ts`) are handwritten. No auto-generated clients from Swagger spec.
+- **Global rate limiting**: `@nestjs/throttler` is installed but only applied to `AuthModule`. No global throttle guard.
+- **Request ID middleware**: While pino logs include `reqId`, there is no explicit request-id middleware for correlation across services.
+- **Health check endpoint**: `HealthModule` exists but only checks Prisma connectivity. No `/health/live` or `/health/ready` separation.
+- **Database migration CI**: CI workflow does not run `prisma migrate deploy` against a test database.
+- **Web-admin feature modules**: All pages are in `src/pages/` without feature-level module separation. No shared page components beyond the UI package.
+
+## Environment variables
+
+### Server (`apps/server/.env`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NODE_ENV` | Yes | `development` \| `production` |
+| `PORT` | Yes | Server port (default 3000) |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `CORS_ORIGIN` | Yes | Comma-separated allowed origins |
+| `JWT_SECRET` | Yes | JWT signing secret |
+| `SWAGGER_ENABLED` | No | Enable Swagger UI (default false in production) |
+| `LOG_LEVEL` | No | Pino log level (default `info`) |
+| `QINIU_ACCESS_KEY` / `QINIU_SECRET_KEY` / `QINIU_BUCKET` / `QINIU_DOMAIN` | Conditional | Qiniu cloud storage (required for upload endpoints) |
+
+### Web Admin (`apps/web-admin/.env`)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_SERVER_URL` | No | Backend URL for dev proxy (default `http://localhost:3000`) |
+| `VITE_API_BASE_URL` | No | API base path override (default `/api/v1`) |
+| `VITE_QINIU_UPLOAD_TOKEN_URL` | No | Upload token endpoint (default `/api/qiniu/upload-token`) |
+
+## CI/CD
+
+GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push to `main` and pull requests:
+
+1. Setup pnpm (reads version from root `package.json` `packageManager` field)
+2. Setup Node.js 22
+3. Install dependencies with `--frozen-lockfile` (triggers `postinstall` → `prisma contract emit`)
+4. Lint (`pnpm lint`)
+5. Format check (`pnpm format:check`)
+6. Typecheck (`pnpm typecheck`)
+7. Build (`pnpm build`)
+
+Concurrency groups cancel in-progress runs on the same branch.
