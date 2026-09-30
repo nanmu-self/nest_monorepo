@@ -1,30 +1,24 @@
-import type { UserDTO } from '@app/shared';
+import type { UserListDTO } from '@app/shared';
 import { http } from '@/lib/http';
 
 /**
  * 用户列表查询参数。
  *
- * 与后端 `QueryUsersDto` 对齐：page / pageSize 分页，search 邮箱模糊过滤。
+ * 与后端 `QueryUsersDto` 对齐：page / pageSize 分页（必传），search 邮箱模糊过滤。
  */
 export interface GetUsersParams {
-  page?: number;
-  pageSize?: number;
+  page: number;
+  pageSize: number;
   search?: string;
 }
 
 /**
- * 获取用户列表。
+ * 获取用户列表（分页）。
  *
- * 不传分页参数时返回全部数据（保留旧行为）。
+ * 后端返回 `{ list, total }`：total 是满足过滤条件的总数，用于计算真实总页数。
  */
-export function getUsers(params?: GetUsersParams) {
-  const { page, pageSize, search } = params ?? {};
-
-  const queryParts: string[] = [];
-  if (typeof page === 'number') queryParts.push(`page=${page}`);
-  if (typeof pageSize === 'number') queryParts.push(`pageSize=${pageSize}`);
+export function getUsers({ page, pageSize, search }: GetUsersParams) {
+  const queryParts = [`page=${page}`, `pageSize=${pageSize}`];
   if (search) queryParts.push(`search=${encodeURIComponent(search)}`);
-
-  const query = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
-  return http.Get<UserDTO[]>(`/users${query}`);
+  return http.Get<UserListDTO>(`/users?${queryParts.join('&')}`);
 }

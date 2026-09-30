@@ -48,7 +48,8 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 - **Prisma 8（contract 工作流）**：数据模型写在 `prisma/contract.prisma`（PSL，顶部必须 `// use prisma-next`）。没有 PrismaClient 类：`PrismaService` 用 `@prisma/orm-postgres/runtime` 的 `postgres()` 工厂创建客户端，`onModuleInit` 里 `connect()`。`PrismaService.orm` getter 返回 `client.orm.public`（即 Namespace），业务代码通过 `this.prisma.orm.User` 访问模型 Collection。查询写法：
   - `this.prisma.orm.User.where((u) => u.email.eq('test@example.com')).first()`
   - `this.prisma.orm.User.select('id', 'email').where((u) => u.email.like(`%search%`)).limit(10).offset(20).all()`
-  - 终端方法：`.all()`（返回 AsyncIterableResult，可 await 得数组）、`.first()`（返回 Promise<Row | null>）、`.count()`、`.aggregate(...)` 等
+  - 终端方法：`.all()`（返回 AsyncIterableResult，可 await 得数组）、`.first()`（返回 Promise<Row | null>）等
+  - 聚合限制：`count()` / `sum()` 等标量聚合**只能在 `include()` 回调内**对 to-many 关系归约使用，顶层集合没有 count 终端；分组聚合走 `.groupBy(...).aggregate(...)`。需要全表/过滤计数时，取符合条件的主键列表（`.select('id').all()`）后计长
   - 链式方法：`.where(...)`、`.select(...)`、`.orderBy(...)`、`.limit(...)`、`.offset(...)`、`.cursor(...)`、`.include(...)`
   - 操作符：`.eq()`, `.neq()`, `.gt()`, `.gte()`, `.lt()`, `.lte()`, `.like()`, `.ilike()`, `.in([...])`, `.isNull()`, `.isNotNull()`
   - 改契约后先 `pnpm db:emit` 再做迁移。
@@ -57,6 +58,7 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 - Feature modules follow the `users/` shape: `*.module.ts`, `*.controller.ts`, `*.service.ts`, wired into `AppModule.imports`. Services select explicit columns to avoid leaking sensitive fields (see `UsersService.findAll` excluding `password_hash`) - preserve that habit when adding new tables.
 - `UsersService` 已支持分页（`page`/`pageSize`）与邮箱模糊搜索（`search`），前端 `UsersPage` 对应实现了搜索框、每页条数选择器和分页控件。新增列表接口时参考该形状。
 - **DTO 必须是 class**：全局 `ValidationPipe` 依赖 `emitDecoratorMetadata` 反射出的设计期类型做校验，interface 在编译期被擦除，会导致校验静默失效。SWC 构建器不支持 `@nestjs/swagger` 的 CLI 插件，所以 `@ApiProperty` / `@ApiPropertyOptional` 需要显式标注。
+- **Query DTO 的 number 字段必须 `@Type(() => Number)`**：ValidationPipe 未开启 `enableImplicitConversion`，query 参数默认是 string，仅声明 `page?: number` 不会转换——`typeof page === 'number'` 判断会静默失败、走错分支（参考 `QueryUsersDto`，需配 `@IsNumber()`）。
 
 #### Error handling & logging
 
@@ -75,6 +77,8 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 - React 19 with the React Compiler enabled via `@rolldown/plugin-babel` + `babel-plugin-react-compiler` (see `vite.config.ts`). tsconfig sets `erasableSyntaxOnly`, `verbatimModuleSyntax`, `noUnusedLocals/Parameters` - expect the compiler to reject non-erasable TS syntax (enum bodies, namespaces, param-properties in non-decorator classes) and unused bindings.
 - HTTP client is `src/lib/http.ts`, an Alova instance built from `createHttp` in the shared package. Default `baseURL` is `/api/v1`, overridable with `VITE_API_BASE_URL`.
 - **全局 button 样式陷阱：** `src/index.css` 的 `@layer base` 给所有原生 `<button>` 设了黑底白字 + `padding: 10px 22px` + `border-radius: 980px`（Apple 风格主按钮）。图标按钮（只有图标、无文字的小按钮）不能直接用裸 `<button>` 加 Tailwind utilities 覆盖——`button:hover` 的 `background` 声明会干扰 `hover:bg-*`，`padding` 会撑变形。正确做法：给图标按钮加 `.icon-btn` 类（定义在 `@layer components`，已覆盖 padding/background/color/hover），危险操作用 `.icon-btn-danger`。参考 `AppLayout` 的 `.btn-sidebar-toggle` / `.btn-logout` 也是同样的 components 层覆盖模式。
+- **按钮统一走 `@app/ui` 的 `Button`**：常规文字按钮用 `<Button variant="default" | "secondary">`（胶囊形 `rounded-full`，与 base 层 980px 圆角设计语言一致）；链接按钮用 `<Button asChild><Link to="..."/></Button>`。web-admin 里旧的 `.btn-primary` / `.btn-ghost` 快捷类已删除——不要再新建同类快捷类，避免与共享包 Button 形成双真理源。
+- **数据请求约定：** 参数/状态驱动的列表请求用 `useWatcher`（alova 默认 `abortLast`，只有最后一次请求的响应会写入状态，天然防竞态；支持 `debounce` 按监听项配置），一次性请求才用 `useRequest` + `send()`。
 
 ### Shared package (`packages/shared`)
 
@@ -111,7 +115,7 @@ Both packages are CSS-first — `tsup` bundles the JS entry and `onSuccess` copi
 
 1. Create `src/pages/<page>/index.tsx` and add the route in `src/router/index.tsx`
 2. Add API functions in `src/api/<feature>.ts` using the shared `http` client
-3. Use `useRequest` from alova for data fetching; handle `loading`, `error`, and empty states
+3. Use `useWatcher` from alova for param/state-driven data fetching (see「数据请求约定」above); handle `loading`, `error`, and empty states
 4. Use shared UI components from `@app/ui` and styles from `@app/config-tailwind`
 5. For forms, use the `Field` family from `@app/ui` with `data-invalid` for error styling
 6. For error messages, use `resolveErrorMessage` from `@/lib/error-message` to map business codes to user-friendly text
@@ -133,24 +137,24 @@ The following are **not yet implemented** and should not be assumed to exist:
 
 ### Server (`apps/server/.env`)
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `NODE_ENV` | Yes | `development` \| `production` |
-| `PORT` | Yes | Server port (default 3000) |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `CORS_ORIGIN` | Yes | Comma-separated allowed origins |
-| `JWT_SECRET` | Yes | JWT signing secret |
-| `SWAGGER_ENABLED` | No | Enable Swagger UI (default false in production) |
-| `LOG_LEVEL` | No | Pino log level (default `info`) |
+| Variable                                                                  | Required    | Description                                         |
+| ------------------------------------------------------------------------- | ----------- | --------------------------------------------------- |
+| `NODE_ENV`                                                                | Yes         | `development` \| `production`                       |
+| `PORT`                                                                    | Yes         | Server port (default 3000)                          |
+| `DATABASE_URL`                                                            | Yes         | PostgreSQL connection string                        |
+| `CORS_ORIGIN`                                                             | Yes         | Comma-separated allowed origins                     |
+| `JWT_SECRET`                                                              | Yes         | JWT signing secret                                  |
+| `SWAGGER_ENABLED`                                                         | No          | Enable Swagger UI (default false in production)     |
+| `LOG_LEVEL`                                                               | No          | Pino log level (default `info`)                     |
 | `QINIU_ACCESS_KEY` / `QINIU_SECRET_KEY` / `QINIU_BUCKET` / `QINIU_DOMAIN` | Conditional | Qiniu cloud storage (required for upload endpoints) |
 
 ### Web Admin (`apps/web-admin/.env`)
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `VITE_SERVER_URL` | No | Backend URL for dev proxy (default `http://localhost:3000`) |
-| `VITE_API_BASE_URL` | No | API base path override (default `/api/v1`) |
-| `VITE_QINIU_UPLOAD_TOKEN_URL` | No | Upload token endpoint (default `/api/qiniu/upload-token`) |
+| Variable                      | Required | Description                                                 |
+| ----------------------------- | -------- | ----------------------------------------------------------- |
+| `VITE_SERVER_URL`             | No       | Backend URL for dev proxy (default `http://localhost:3000`) |
+| `VITE_API_BASE_URL`           | No       | API base path override (default `/api/v1`)                  |
+| `VITE_QINIU_UPLOAD_TOKEN_URL` | No       | Upload token endpoint (default `/api/qiniu/upload-token`)   |
 
 ## CI/CD
 

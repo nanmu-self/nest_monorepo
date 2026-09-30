@@ -33,16 +33,9 @@
     @apply text-[28px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#1d1d1f] mb-6;
   }
 
-  /* 覆盖共享包的同名 shortcut：shadcn 黑白风格 + 按压反馈
-     共享包不动（其他 app 可能依赖原行为，brand-* 仍保留品牌色系），
-     web-admin 内自带的快捷类统一走黑白：主按钮纯黑，幽灵按钮浅灰。
-     颜色与 packages/ui 的 --primary / --secondary token 对齐，保持一套主题。 */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-[15px] font-medium hover:bg-primary/90 transition-[transform,background-color] duration-160 ease-out-strong active:scale-[0.97];
-  }
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-secondary text-secondary-foreground text-[15px] font-medium hover:bg-secondary/80 transition-[transform,background-color,color] duration-160 ease-out-strong active:scale-[0.97];
-  }
+  /* 按钮统一走 @app/ui 的 Button 组件（variant: default/secondary，胶囊形）。
+     旧的 .btn-primary / .btn-ghost 快捷类已删除——不要再新建同类快捷类，
+     否则会与共享包 Button 形成双真理源。*/
 
   /* Apple 式卡片：无硬边框，柔和投影分层 */
   .apple-card {

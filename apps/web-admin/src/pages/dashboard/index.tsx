@@ -32,8 +32,8 @@ export default function DashboardPage() {
         {STATS.map(({ label, value, icon: Icon }) => (
           <div key={label} className="apple-card">
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-[#86868b]">{label}</span>
-              <Icon size={16} className="text-[#86868b]" />
+              <span className="text-[13px] text-[var(--text-muted)]">{label}</span>
+              <Icon size={16} className="text-[var(--text-muted)]" />
             </div>
             <div className="stat-value mt-3">{value}</div>
             <div className="stat-label">统计接口接入后展示</div>
@@ -42,7 +42,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 快速入口：卡片式导航，hover 轻微上浮 */}
-      <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#1d1d1f] mt-10 mb-4">
+      <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--text-h)] mt-10 mb-4">
         快速开始
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -53,12 +53,14 @@ export default function DashboardPage() {
             className="apple-card group flex items-start justify-between gap-4 transition-[transform,box-shadow] duration-200 ease-out-strong hover:-translate-y-0.5 hover:shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_8px_24px_rgba(0,0,0,0.08)]"
           >
             <div>
-              <div className="text-[15px] font-medium text-[#1d1d1f]">{title}</div>
-              <p className="text-[13px] text-[#86868b] mt-1 leading-relaxed">{description}</p>
+              <div className="text-[15px] font-medium text-[var(--text-h)]">{title}</div>
+              <p className="text-[13px] text-[var(--text-muted)] mt-1 leading-relaxed">
+                {description}
+              </p>
             </div>
             <ArrowUpRight
               size={16}
-              className="shrink-0 text-[#86868b] transition-[color,transform] duration-200 ease-out-strong group-hover:text-[#1d1d1f] group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              className="shrink-0 text-[var(--text-muted)] transition-[color,transform] duration-200 ease-out-strong group-hover:text-[var(--text-h)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
             />
           </a>
         ))}

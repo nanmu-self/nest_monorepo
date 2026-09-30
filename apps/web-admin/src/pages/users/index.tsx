@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { useRequest } from 'alova/client';
+import { useEffect, useMemo, useState } from 'react';
+import { useWatcher } from 'alova/client';
 import { Inbox, Search, TriangleAlert } from 'lucide-react';
+import { Button } from '@app/ui';
 
 import { getUsers } from '@/api/users';
 
@@ -12,40 +13,44 @@ const FIRST_PAGE = 1;
 /** 可用每页条数选项 */
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
+/** 搜索防抖时长（ms）：停止输入后才发起请求 */
+const SEARCH_DEBOUNCE = 300;
+
 export default function UsersPage() {
   const [page, setPage] = useState(FIRST_PAGE);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState('');
+  /** 防抖后的搜索词：唯一驱动请求的搜索值，避免每次击键都发请求 */
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const { data, loading, error, send } = useRequest(
-    () => getUsers({ page, pageSize, search: search || undefined }),
-    {
-      immediate: true,
-    },
+  // 搜索防抖：停止输入 300ms 后生效，同时回到第一页（挂载时 setPage(1) 是 no-op）。
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(FIRST_PAGE);
+    }, SEARCH_DEBOUNCE);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // useWatcher（而非 useRequest + 手动 send）：
+  // 1. 监听 [page, pageSize, debouncedSearch]，任一变化自动重新请求，无需手动 send；
+  // 2. alova 默认 abortLast —— 只有最后一次请求的响应会写入状态，
+  //    连续翻页/搜索时旧请求的迟到响应不会覆盖新数据（竞态防护）。
+  const { data, loading, error } = useWatcher(
+    () => getUsers({ page, pageSize, search: debouncedSearch || undefined }),
+    [page, pageSize, debouncedSearch],
+    { immediate: true },
   );
 
-  const totalPages = useMemo(() => {
-    if (!Array.isArray(data) || data.length === 0) return FIRST_PAGE;
-    // 当前接口仅返回当前页数据，没有 total。这里按 data 长度估算页数。
-    // 若后续后端改成返回分页元信息，再替换为真实 total。
-    return Math.max(FIRST_PAGE, Math.ceil(data.length / pageSize));
-  }, [data, pageSize]);
+  // 后端返回过滤后的真实 total，页数不再靠当前页数据量估算
+  const total = data?.total ?? 0;
+  const totalPages = useMemo(
+    () => Math.max(FIRST_PAGE, Math.ceil(total / pageSize)),
+    [total, pageSize],
+  );
 
   const canPrev = page > FIRST_PAGE;
   const canNext = page < totalPages;
-
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    setPage(FIRST_PAGE);
-    // 搜索词变化后手动触发请求，避免 useRequest 依赖数组过于复杂
-    void send();
-  };
-
-  const handlePageSizeChange = (next: number) => {
-    setPageSize(next);
-    setPage(FIRST_PAGE);
-    void send();
-  };
 
   return (
     <section>
@@ -57,23 +62,23 @@ export default function UsersPage() {
           <div className="relative w-full sm:w-80">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
             />
             <input
               type="search"
-              className="w-full h-10 rounded-full border border-[#d2d2d7] bg-white pl-9 pr-4 text-[14px] text-[#1d1d1f] outline-none transition-[border-color] focus:border-[#1d1d1f]"
+              className="w-full h-10 rounded-full border border-[var(--border)] bg-white pl-9 pr-4 text-[14px] text-[var(--text-h)] outline-none transition-[border-color] focus:border-[var(--text-h)]"
               placeholder="按邮箱搜索…"
               value={search}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          <div className="flex items-center gap-2 text-[14px] text-[#86868b]">
+          <div className="flex items-center gap-2 text-[14px] text-[var(--text-muted)]">
             <span>每页显示</span>
             <select
-              className="h-9 rounded-full border border-[#d2d2d7] bg-white px-3 text-[14px] text-[#1d1d1f] outline-none focus:border-[#1d1d1f]"
+              className="h-9 rounded-full border border-[var(--border)] bg-white px-3 text-[14px] text-[var(--text-h)] outline-none focus:border-[var(--text-h)]"
               value={pageSize}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              onChange={(e) => setPageSize(Number(e.target.value))}
             >
               {PAGE_SIZE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -87,44 +92,48 @@ export default function UsersPage() {
       </div>
 
       {loading && (
-        <div className="apple-card py-16 text-center text-[14px] text-[#86868b]">加载中…</div>
+        <div className="apple-card py-16 text-center text-[14px] text-[var(--text-muted)]">
+          加载中…
+        </div>
       )}
 
       {error && (
         <div className="apple-card flex-col-center py-16 text-center">
-          <div className="flex-center w-14 h-14 rounded-full bg-[#fff2f1] text-[#ff3b30] mb-4">
+          <div className="flex-center w-14 h-14 rounded-full bg-[rgba(239,68,68,0.08)] text-[var(--danger)] mb-4">
             <TriangleAlert size={24} />
           </div>
-          <p className="text-[15px] font-medium text-[#1d1d1f]">加载失败</p>
-          <p className="text-[13px] text-[#86868b] mt-1">{error.message}</p>
+          <p className="text-[15px] font-medium text-[var(--text-h)]">加载失败</p>
+          <p className="text-[13px] text-[var(--text-muted)] mt-1">{error.message}</p>
         </div>
       )}
 
-      {Array.isArray(data) && data.length > 0 && (
+      {data && data.list.length > 0 && (
         <>
           <div className="apple-card p-0 overflow-hidden">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-[#f5f5f7]">
-                  <th className="admin-table-cell text-left text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em]">
+                <tr className="bg-[var(--bg)]">
+                  <th className="admin-table-cell text-left text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.04em]">
                     ID
                   </th>
-                  <th className="admin-table-cell text-left text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em]">
+                  <th className="admin-table-cell text-left text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.04em]">
                     邮箱
                   </th>
-                  <th className="admin-table-cell text-left text-[12px] font-medium text-[#86868b] uppercase tracking-[0.04em]">
+                  <th className="admin-table-cell text-left text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-[0.04em]">
                     创建时间
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((user) => (
+                {data.list.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-t border-[#f0f0f2] first:border-t-0 transition-colors duration-150 hover:bg-[#fafafa]"
+                    className="border-t border-black/5 first:border-t-0 transition-colors duration-150 hover:bg-black/[0.02]"
                   >
-                    <td className="admin-table-cell text-[#86868b]">{user.id}</td>
-                    <td className="admin-table-cell font-medium text-[#1d1d1f]">{user.email}</td>
+                    <td className="admin-table-cell text-[var(--text-muted)]">{user.id}</td>
+                    <td className="admin-table-cell font-medium text-[var(--text-h)]">
+                      {user.email}
+                    </td>
                     <td className="admin-table-cell">{user.created_at}</td>
                   </tr>
                 ))}
@@ -132,46 +141,40 @@ export default function UsersPage() {
             </table>
           </div>
 
-          {/* 分页 */}
-          <div className="flex items-center justify-between mt-4 text-[14px] text-[#86868b]">
+          {/* 分页：total 来自后端，canNext 基于真实总页数 */}
+          <div className="flex items-center justify-between mt-4 text-[14px] text-[var(--text-muted)]">
             <div>
-              第 {page} / {totalPages} 页，每页 {pageSize} 条
+              共 {total} 条，第 {page} / {totalPages} 页
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
-                className="btn-ghost"
+                variant="secondary"
                 disabled={!canPrev}
-                onClick={() => {
-                  setPage((p) => p - 1);
-                  void send();
-                }}
+                onClick={() => setPage((p) => p - 1)}
               >
                 上一页
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn-ghost"
+                variant="secondary"
                 disabled={!canNext}
-                onClick={() => {
-                  setPage((p) => p + 1);
-                  void send();
-                }}
+                onClick={() => setPage((p) => p + 1)}
               >
                 下一页
-              </button>
+              </Button>
             </div>
           </div>
         </>
       )}
 
-      {Array.isArray(data) && data.length === 0 && (
+      {data && data.list.length === 0 && (
         <div className="apple-card flex-col-center py-20 text-center">
-          <div className="flex-center w-14 h-14 rounded-full bg-[#f5f5f7] text-[#86868b] mb-4">
+          <div className="flex-center w-14 h-14 rounded-full bg-[var(--bg)] text-[var(--text-muted)] mb-4">
             <Inbox size={24} />
           </div>
-          <p className="text-[15px] font-medium text-[#1d1d1f]">暂无用户</p>
-          <p className="text-[13px] text-[#86868b] mt-1">注册的用户账号会显示在这里。</p>
+          <p className="text-[15px] font-medium text-[var(--text-h)]">暂无用户</p>
+          <p className="text-[13px] text-[var(--text-muted)] mt-1">注册的用户账号会显示在这里。</p>
         </div>
       )}
     </section>

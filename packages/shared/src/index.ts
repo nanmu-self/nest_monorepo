@@ -8,6 +8,7 @@ export { HttpError } from './errors';
 export { ErrorCode } from './constants/error-codes';
 export type {
   UserDTO,
+  UserListDTO,
   LoginRequest,
   LoginResponse,
   ApiResponse,

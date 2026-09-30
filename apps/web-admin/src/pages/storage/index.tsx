@@ -202,8 +202,8 @@ export default function StoragePage() {
         />
         <div className="flex-between">
           <div>
-            <div className="text-[15px] font-medium text-[#1d1d1f]">文件上传</div>
-            <p className="text-[13px] text-[#86868b] mt-1">
+            <div className="text-[15px] font-medium text-[var(--text-h)]">文件上传</div>
+            <p className="text-[13px] text-[var(--text-muted)] mt-1">
               使用官方 qiniu-js SDK 直传，自动支持分片上传与断点续传（&gt;4MB 自动分块）。
             </p>
           </div>
@@ -226,15 +226,15 @@ export default function StoragePage() {
         {/* 上传进度条 */}
         {progress && (
           <div className="mt-4">
-            <div className="flex-between text-[12px] text-[#86868b] mb-1.5">
+            <div className="flex-between text-[12px] text-[var(--text-muted)] mb-1.5">
               <span className="truncate max-w-[60%]">{progress.name}</span>
               <span>
                 {formatSize(progress.loaded)} / {formatSize(progress.total)} · {progress.percent}%
               </span>
             </div>
-            <div className="h-2 rounded-full bg-[#e5e5ea] overflow-hidden">
+            <div className="h-2 rounded-full bg-black/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#1d1d1f] transition-[width] duration-200 ease-out-strong"
+                className="h-full rounded-full bg-[var(--text-h)] transition-[width] duration-200 ease-out-strong"
                 style={{ width: `${progress.percent}%` }}
               />
             </div>
@@ -244,14 +244,14 @@ export default function StoragePage() {
 
       {/* 删除区 */}
       <div className="apple-card mb-6">
-        <div className="text-[15px] font-medium text-[#1d1d1f] mb-1">删除文件</div>
-        <p className="text-[13px] text-[#86868b] mb-3">
+        <div className="text-[15px] font-medium text-[var(--text-h)] mb-1">删除文件</div>
+        <p className="text-[13px] text-[var(--text-muted)] mb-3">
           输入文件 key 或完整访问 URL，后端会自动解析。
         </p>
         <div className="flex gap-2">
           <input
             type="text"
-            className="flex-1 h-10 rounded-full border border-[#d2d2d7] bg-white px-4 text-[14px] text-[#1d1d1f] outline-none transition-[border-color] focus:border-[#1d1d1f]"
+            className="flex-1 h-10 rounded-full border border-[var(--border)] bg-white px-4 text-[14px] text-[var(--text-h)] outline-none transition-[border-color] focus:border-[var(--text-h)]"
             placeholder="例如：FmX8pK3sL9.png 或 https://cdn.example.com/FmX8pK3sL9.png"
             value={deleteInput}
             onChange={(e) => setDeleteInput(e.target.value)}
@@ -275,8 +275,8 @@ export default function StoragePage() {
 
       {/* 错误提示 */}
       {error && (
-        <div className="apple-card mb-6 border-l-4 border-[#ef4444] !p-4">
-          <p className="text-[13px] text-[#ef4444] font-medium">{error}</p>
+        <div className="apple-card mb-6 border-l-4 border-[var(--danger)] !p-4">
+          <p className="text-[13px] text-[var(--danger)] font-medium">{error}</p>
         </div>
       )}
 
@@ -291,24 +291,26 @@ export default function StoragePage() {
         <CardContent>
           {files.length === 0 ? (
             <div className="flex-col-center py-12 text-center">
-              <div className="flex-center w-12 h-12 rounded-full bg-[#f5f5f7] text-[#86868b] mb-3">
+              <div className="flex-center w-12 h-12 rounded-full bg-[var(--bg)] text-[var(--text-muted)] mb-3">
                 <LinkIcon size={20} />
               </div>
-              <p className="text-[14px] text-[#86868b]">还没有上传文件</p>
+              <p className="text-[14px] text-[var(--text-muted)]">还没有上传文件</p>
             </div>
           ) : (
             <ul className="flex-col gap-2">
               {files.map((file) => (
                 <li
                   key={file.key}
-                  className="flex items-center gap-3 rounded-xl border border-[#e5e5ea] p-3"
+                  className="flex items-center gap-3 rounded-xl border border-black/10 p-3"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-medium text-[#1d1d1f] truncate">
+                    <div className="text-[14px] font-medium text-[var(--text-h)] truncate">
                       {file.name}
                     </div>
-                    <div className="text-[12px] text-[#86868b] truncate mt-0.5">{file.url}</div>
-                    <div className="text-[11px] text-[#aeaeb2] mt-0.5">
+                    <div className="text-[12px] text-[var(--text-muted)] truncate mt-0.5">
+                      {file.url}
+                    </div>
+                    <div className="text-[11px] text-black/35 mt-0.5">
                       {formatSize(file.size)} · key: {file.key}
                     </div>
                   </div>

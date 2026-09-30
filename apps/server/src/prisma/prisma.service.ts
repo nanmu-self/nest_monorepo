@@ -21,8 +21,10 @@ import { DATABASE_URL } from '@/config/env';
  *   this.orm.public.User.where({ email }).first()
  *   this.orm.public.User.select('id', 'email').all()
  *
- * 注意：Collection 是链式构造器，终端方法是 .all() / .first() / .count() 等，
+ * 注意：Collection 是链式构造器，终端方法是 .all() / .first() 等，
  * 不是 Prisma 7 的 .findMany() / .findFirst()。
+ * count()/sum() 等聚合只能出现在 include() 回调内（对 to-many 关系归约），
+ * 顶层集合没有 count 终端；分组聚合走 .groupBy(...).aggregate(...)。
  */
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {

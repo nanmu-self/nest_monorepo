@@ -13,6 +13,14 @@ export interface UserDTO {
   updated_at: string;
 }
 
+/** 分页用户列表响应（wire format） */
+export interface UserListDTO {
+  /** 当前页数据 */
+  list: UserDTO[];
+  /** 满足过滤条件的记录总数（用于前端计算真实总页数） */
+  total: number;
+}
+
 /** 登录请求体 */
 export interface LoginRequest {
   email: string;
