@@ -37,12 +37,21 @@
      旧的 .btn-primary / .btn-ghost 快捷类已删除——不要再新建同类快捷类，
      否则会与共享包 Button 形成双真理源。*/
 
-  /* Apple 式卡片：无硬边框，柔和投影分层 */
+  /* Apple 式卡片：无硬边框，柔和投影分层。
+     背景走 --card（来自 @app/ui），而不是写死 bg-white，
+     这样暗色模式下会自动跟着 shadcn 语义色翻转。 */
   .apple-card {
-    @apply bg-white rounded-2xl p-6;
+    @apply rounded-2xl p-6;
+    background: var(--card);
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.03),
       0 2px 12px rgba(0, 0, 0, 0.05);
+  }
+  /* 深色下黑投影不可见，改成白色微光描边做分层 */
+  .dark .apple-card {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 2px 12px rgba(0, 0, 0, 0.4);
   }
 
   /* 图标按钮基类：覆盖 base 层 button 的 padding/background/color，
@@ -57,11 +66,11 @@
     color: var(--text-muted);
   }
   .icon-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--overlay-2);
     color: var(--text-h);
   }
   .icon-btn-danger:hover {
-    background: rgba(239, 68, 68, 0.08);
+    background: color-mix(in oklab, var(--danger) 12%, transparent);
     color: var(--danger);
   }
   .icon-btn:disabled {
@@ -94,6 +103,15 @@
     --action-hover: #1e293b;
     --danger: #ef4444;
 
+    /* 叠加层 token：所有「黑色低透明度」的底色统一走这里。
+       原因：深色模式下黑色低透明度等于“什么都没有”，hover 反馈会静默消失；
+       反过来用白色低透明度在浅色下又会刺眼。所以按明暗模式各定义一套。 */
+    --overlay-1: rgba(0, 0, 0, 0.03);
+    --overlay-2: rgba(0, 0, 0, 0.05);
+    --overlay-3: rgba(0, 0, 0, 0.07);
+    /* 毛玻璃顶栏底色 */
+    --header-bg: rgba(245, 245, 247, 0.72);
+
     /* 动效时长 token：UI 硬上限 300ms */
     --duration-press: 160ms;
     --duration-tip: 160ms;
@@ -113,6 +131,28 @@
 
   * {
     box-sizing: border-box;
+  }
+
+  /* ---------- 深色模式 ----------
+     只覆盖 token，组件类本身不含颜色声明（全部 var() 引用），
+     所以这一段就是全部的暗色适配工作量。
+     保持与浅色同样的明度层级关系：正文 > 次级文本 > 背景。 */
+  .dark {
+    --text: oklch(0.78 0.012 258);
+    --text-h: oklch(0.97 0.004 258);
+    --text-muted: oklch(0.68 0.014 258);
+    --bg: oklch(0.16 0.012 259);
+    --panel: oklch(0.22 0.014 259);
+    --border: oklch(0.32 0.014 259);
+
+    --action: oklch(0.97 0.004 258);
+    --action-hover: oklch(0.86 0.008 258);
+    --danger: oklch(0.71 0.166 22);
+
+    --overlay-1: rgba(255, 255, 255, 0.04);
+    --overlay-2: rgba(255, 255, 255, 0.07);
+    --overlay-3: rgba(255, 255, 255, 0.1);
+    --header-bg: rgba(20, 26, 41, 0.72);
   }
 
   body,
@@ -145,11 +185,11 @@
   button {
     font: inherit;
     cursor: pointer;
-    border: none;
+    background: transparent;
     border-radius: 980px;
     padding: 10px 22px;
     background: var(--action);
-    color: #fff;
+    color: var(--primary-foreground);
     font-size: 15px;
     font-weight: 500;
     /* 显式列出属性：hover 走 ease，按压 transform 走 out-strong */
@@ -190,7 +230,7 @@
   .app-sidebar {
     width: 232px;
     /* 材质分层：比主背景略深的灰，靠色调而非边框区分区域 */
-    background: rgba(0, 0, 0, 0.03);
+    background: var(--overlay-1);
     padding: 24px 12px;
     display: flex;
     flex-direction: column;
@@ -233,7 +273,7 @@
     height: 26px;
     border-radius: 8px;
     background: var(--text-h);
-    color: #fff;
+    color: var(--primary-foreground);
     display: grid;
     place-items: center;
     font-size: 13px;
@@ -285,11 +325,11 @@
     transition: color var(--duration-press) var(--ease-out-strong);
   }
   .app-sidebar nav a:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--overlay-2);
   }
   /* 激活态：iOS 分组列表式柔和圆角块，不用彩色背景 */
   .app-sidebar nav a.active {
-    background: rgba(0, 0, 0, 0.07);
+    background: var(--overlay-3);
     font-weight: 500;
   }
   .app-sidebar nav a.active svg {
@@ -317,7 +357,7 @@
     height: 60px;
     flex-shrink: 0;
     /* 毛玻璃顶栏：内容从其下方滚过，浮层而非占位条 */
-    background: rgba(245, 245, 247, 0.72);
+    background: var(--header-bg);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     display: flex;
@@ -348,7 +388,7 @@
     color: var(--text);
   }
   .btn-sidebar-toggle:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--overlay-2);
   }
   .btn-logout {
     display: inline-flex;
@@ -360,7 +400,7 @@
     padding: 7px 14px;
   }
   .btn-logout:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--overlay-2);
     color: var(--danger);
   }
   .app-main {

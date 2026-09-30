@@ -13,6 +13,7 @@
     "@app/config-tailwind": "workspace:*",
     "@app/shared": "workspace:*",
     "@app/ui": "workspace:*",
+    "@tanstack/react-table": "^8.21.3",
     "alova": "^3.5.5",
     "lucide-react": "^1.48.0",
     "qiniu-js": "^3.4.4",

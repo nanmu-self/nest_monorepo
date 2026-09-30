@@ -10,7 +10,7 @@ pnpm workspace monorepo template for full-stack admin services (general-purpose 
 - `apps/web-admin` - React 19 admin UI (`@app/web-admin`) built with Vite 8 and the React Compiler Babel plugin.
 - `packages/shared` - `@app/shared`, published via tsup + tsc into `dist/` and consumed as `workspace:*`. Uses **subpath exports** to keep framework-specific code isolated: root (`@app/shared`) exports framework-agnostic types/classes (`HttpError`, `ErrorCode` enum, API DTO types — `UserDTO`, `LoginRequest`, `LoginResponse`, `ApiResponse`, `UploadTokenResponse`); `@app/shared/http` exports the alova-based `createHttp` client. Server-side code that only needs shared types will not pull alova into its module graph.
 - `packages/config-tailwind` - `@app/config-tailwind`, Tailwind 4 design tokens (`@theme` + `@layer components`) bundled via tsup. Consumed as `@import '@app/config-tailwind/styles.css'` from the consumer's CSS entry; has no JS API beyond the empty `index.ts` placeholder.
-- `packages/ui` - `@app/ui`, shadcn-style components (Button, Input, Card, Field, Label, cn()) bundled via tsup. `lucide-react` and `react` are peer dependencies — consumers must install them themselves.
+- `packages/ui` - `@app/ui`, shadcn-style components bundled via tsup. `lucide-react` and `react` are peer dependencies — consumers must install them themselves. Radix primitives + `cmdk` are regular `dependencies` (组件自包含，消费方无需安装).
 
 ## Common commands
 
@@ -80,6 +80,24 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 - **按钮统一走 `@app/ui` 的 `Button`**：常规文字按钮用 `<Button variant="default" | "secondary">`（胶囊形 `rounded-full`，与 base 层 980px 圆角设计语言一致）；链接按钮用 `<Button asChild><Link to="..."/></Button>`。web-admin 里旧的 `.btn-primary` / `.btn-ghost` 快捷类已删除——不要再新建同类快捷类，避免与共享包 Button 形成双真理源。
 - **数据请求约定：** 参数/状态驱动的列表请求用 `useWatcher`（alova 默认 `abortLast`，只有最后一次请求的响应会写入状态，天然防竞态；支持 `debounce` 按监听项配置），一次性请求才用 `useRequest` + `send()`。
 
+#### 列表页基建（TanStack Table + URL 状态）
+
+新增列表页用这套现成基建，不要再手写 `<table>` + `useState` 分页：
+
+- **`useTableUrlState`（`src/hooks/use-table-url-state.ts`）** —— 把分页 / 搜索 / 列过滤映射到 URL query（`page` / `pageSize` / `filter`）。刷新、分享链接、前进后退都能还原视图。与上游实现的两点刻意差异：搜索走**防抖 + `replace: true`**（每次击键都 push 历史的话，点一次后退要按几十次）；翻页仍然 push。
+  **一个页面只能调一次**——hook 内部有本地 state + 定时器，多处调用会出现多个定时器互相打架。列表页把结果透传给表格组件，参考 `pages/users/use-users-list.ts` → `users-table.tsx` 的切分。
+- **`components/data-table/`** —— `DataTableToolbar`（搜索 + 分面筛选 + 列显隐）、`DataTablePagination`（首/末页跳转 + 页码序列）、`DataTableColumnHeader`（排序列头菜单）、`DataTableBulkActions`（底部浮动批量条，含方向键/Home/End/Esc 导航与 `aria-live` 播报）。
+- **服务端分页写法**：`useReactTable` 必须开 `manualPagination: true` + 传 `pageCount`（由后端 `total` 换算）。不传的话 `table.getPageCount()` 会拿当前页的 10 行去算，分页控件永远显示「第 1 / 1 页」。
+- **搜索框是受控组件**：`searchValue` / `onSearchChange` 由 hook 提供，不走 `table.setGlobalFilter`（服务端过滤时浏览器里不该再过滤一遍）。
+- 列定义里的 `meta: { className }` 依赖 `src/types/tanstack-table.d.ts` 的 `ColumnMeta` 声明，新增列级 meta 字段要同步在那里补声明。
+
+#### 主题（深色模式）
+
+- `ThemeProvider`（`src/context/theme-provider.tsx`）把 `light` / `dark` class 写到 `<html>`，偏好存 cookie（`admin-theme`，一年）。`useTheme` 在 `src/context/theme-context.ts` —— 与 Provider 分文件是因为 Fast Refresh 不允许一个文件混导出组件与 hook。
+- `index.html` 有一段同步内联脚本，在样式加载前就把 class 落到 `<html>`，避免深色模式用户看到一帧白闪。
+- `index.css` 的 `@layer base` 里 `:root` 定义 Apple 语义 token（`--text` / `--bg` / `--panel` / `--border` / `--action` / `--danger`），`.dark` 只覆盖这些 token，组件类本身不含颜色声明。
+- **所有「黑色低透明度」底色一律走 `--overlay-1/2/3`**：深色模式下黑低透明度等于什么都没有，hover 反馈会静默消失。不要写死 `rgba(0,0,0,0.05)`。
+
 ### Shared package (`packages/shared`)
 
 - **Build:** `tsup` emits ESM into `dist/` (one entry per subpath), then `tsc -p tsconfig.build.json` emits the `.d.ts` files. tsup's built-in dts pipeline has trouble with multi-entry `composite: true` projects, so we split the responsibilities. `pnpm dev` runs `tsup --watch`, which is why the root `dev` script starts shared alongside server + web-admin - server/web-admin depend on `dist/` at runtime.
@@ -93,7 +111,9 @@ Path alias `@/*` -> `./src/*` is configured per-project (`apps/server/tsconfig.j
 Both packages are CSS-first — `tsup` bundles the JS entry and `onSuccess` copies the CSS file into `dist/`. Consumers import the CSS via `@import '@app/<pkg>/styles.css';` from their own CSS entry (see `apps/web-admin/src/index.css` for the canonical order: tailwind → tw-animate-css → config-tailwind → ui → consumer overrides).
 
 - **`@app/config-tailwind`** — the design-token source of truth: brand color ramp (`--color-brand-50` through `--color-brand-900`), functional colors (`--color-success / -warning / -danger`), font families. Defines utility class shortcuts (`.btn-primary`, `.btn-ghost`, `.card`, `.flex-center`, etc.) in `@layer components`. Components added in the consumer's `@layer components` later in the cascade **override** these (same specificity, later wins).
-- **`@app/ui`** — shadcn-style semantic tokens (`--color-background / -foreground / -primary / -border / ...`) and a small component set (`Button`, `Input`, `Label`, `Card`, `Field` family). `Button` uses cva variants (`variant` + `size`); `Field` is the form-binding primitive (uses `data-invalid` for error styling). Adding a new component: place it under `src/components/ui/`, re-export from `src/index.ts`, and let Tailwind's `@source './**/*.{ts,tsx,js}';` in `styles.css` auto-pick up cva classes — no separate consumer registration needed.
+- **`@app/ui`** — shadcn-style semantic tokens (`--color-background / -foreground / -primary / -border / ...`) and the component set. `Button` uses cva variants (`variant` + `size`); `Field` is the form-binding primitive (uses `data-invalid` for error styling). Adding a new component: place it under `src/components/ui/`, re-export from `src/index.ts`, and let Tailwind's `@source './**/*.{ts,tsx,js}';` in `styles.css` auto-pick up cva classes — no separate consumer registration needed.
+  - **现有组件**：表单类 `Input` / `Textarea` / `Label` / `Field` / `Checkbox` / `Switch`；展示类 `Card` / `Badge` / `Table` / `Avatar` / `Separator` / `Skeleton` / `Tabs` / `Collapsible`；浮层类 `Dialog` / `AlertDialog` / `Sheet` / `Popover` / `DropdownMenu` / `Select` / `Tooltip` / `Command`。`CommandDialog` 同时提供命令面板与组合框两种形态。
+  - **色值一律 oklch**，不用 hex：同色相下改亮度不漂移，深浅模式过渡均匀，也方便 `color-mix()` 派生。图表色板 `--color-chart-1..5` 已内置，深浅各一套。
 
 ## Code style
 
@@ -131,7 +151,9 @@ The following are **not yet implemented** and should not be assumed to exist:
 - **Request ID middleware**: While pino logs include `reqId`, there is no explicit request-id middleware for correlation across services.
 - **Health check endpoint**: `HealthModule` exists but only checks Prisma connectivity. No `/health/live` or `/health/ready` separation.
 - **Database migration CI**: CI workflow does not run `prisma migrate deploy` against a test database.
-- **Web-admin feature modules**: All pages are in `src/pages/` without feature-level module separation. No shared page components beyond the UI package.
+- **Web-admin feature modules**: All pages are in `src/pages/` without feature-level module separation. Shared building blocks (data-table, theme, error views, long-text) live in `src/components/` and `src/hooks/`.
+- **CRUD 弹窗表单**: Only `ConfirmDialog` / `SelectDropdown` / `PasswordInput` primitives exist. No `mutate-drawer` / `action-dialog` pattern yet — build on `Dialog` + `Field` + `useDialogState` rather than porting upstream's react-hook-form + zod stack (this project validates via NestJS `ValidationPipe`, so client-side schema validation is redundant).
+- **Charts**: `--chart-1..5` tokens exist but no charting library is installed. Add `recharts` when needed.
 
 ## Environment variables
 

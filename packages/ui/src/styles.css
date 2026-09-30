@@ -7,6 +7,10 @@
  * 主题：shadcn 默认黑白配色（slate 中性色阶），主色用纯黑而非默认蓝，
  * 与 web-admin 的 apple-card、暖灰 sidebar 通过单色 + 透明度分层配合，
  * 避免彩色 primary 跟整体调性冲突。
+ *
+ * 色值统一用 oklch 色彩空间（感知均匀）而非 hex：
+ * 同一色相下调整亮度时色相不漂移，深浅模式切换的中间态过渡更顺，
+ * 也方便以后用 `color-mix()` 或相对色语法做派生色。
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -20,66 +24,82 @@
   --radius: 0.625rem;
 
   /* 基础色 —— shadcn 默认（白底 + 冷调深灰文本） */
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.2077 0.0398 265.75);
 
   /* 卡片 / 弹层 */
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2077 0.0398 265.75);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2077 0.0398 265.75);
 
-  /* 主色：纯黑，与"shadcn 黑白配色"主题一致 */
-  --primary: #0f172a;
-  --primary-foreground: #ffffff;
+  /* 主色：近纯黑，与"shadcn 黑白配色"主题一致 */
+  --primary: oklch(0.2077 0.0398 265.75);
+  --primary-foreground: oklch(1 0 0);
 
-  /* 次级 —— shadcn slate-100 */
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  /* 次级 —— slate-100 */
+  --secondary: oklch(0.9683 0.0069 247.9);
+  --secondary-foreground: oklch(0.2077 0.0398 265.75);
 
   /* 静默文本 / 背景 */
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: oklch(0.9683 0.0069 247.9);
+  --muted-foreground: oklch(0.5544 0.0407 257.42);
 
   /* 强调背景（hover 等，shadcn 语义） */
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --accent: oklch(0.9683 0.0069 247.9);
+  --accent-foreground: oklch(0.2077 0.0398 265.75);
 
-  /* 危险色 —— shadcn 默认 red-500 */
-  --destructive: #ef4444;
+  /* 危险色 —— red-500 */
+  --destructive: oklch(0.6368 0.2078 25.33);
 
   /* 边框 / 输入 / 焦点环 */
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0f172a;
+  --border: oklch(0.9288 0.0126 255.51);
+  --input: oklch(0.9288 0.0126 255.51);
+  --ring: oklch(0.2077 0.0398 265.75);
+
+  /* 图表色板：给多序列图表（recharts 等）按序取色。
+     色相均匀分布在色轮上，相邻序列对比度接近，深浅模式各自成套。 */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: oklch(0.2077 0.0398 265.75);
+  --foreground: oklch(0.9842 0.0034 247.86);
 
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
-  --popover: #1e293b;
-  --popover-foreground: #f8fafc;
+  --card: oklch(0.2795 0.0368 260.03);
+  --card-foreground: oklch(0.9842 0.0034 247.86);
+  --popover: oklch(0.2795 0.0368 260.03);
+  --popover-foreground: oklch(0.9842 0.0034 247.86);
 
-  --primary: #f8fafc;
-  --primary-foreground: #0f172a;
+  /* 深色下主色翻转为近白，与 base 层 button 的白字黑底互为逆操作 */
+  --primary: oklch(0.9842 0.0034 247.86);
+  --primary-foreground: oklch(0.2077 0.0398 265.75);
 
-  --secondary: #334155;
-  --secondary-foreground: #f8fafc;
+  --secondary: oklch(0.3717 0.0392 257.29);
+  --secondary-foreground: oklch(0.9842 0.0034 247.86);
 
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
+  --muted: oklch(0.3717 0.0392 257.29);
+  --muted-foreground: oklch(0.7107 0.0351 256.79);
 
-  --accent: #334155;
-  --accent-foreground: #f8fafc;
+  --accent: oklch(0.3717 0.0392 257.29);
+  --accent-foreground: oklch(0.9842 0.0034 247.86);
 
-  --destructive: #f87171;
+  --destructive: oklch(0.7106 0.1661 22.22);
 
-  --border: #334155;
-  --input: #334155;
-  --ring: #f8fafc;
+  --border: oklch(0.3717 0.0392 257.29);
+  --input: oklch(0.3717 0.0392 257.29);
+  --ring: oklch(0.9842 0.0034 247.86);
+
+  /* 深色下提高明度、降低饱和度，避免高饱和色在黑底上"发光" */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
 }
 
 /* 将语义变量映射为 Tailwind 工具类：bg-background / text-primary / border-border ... */
@@ -102,6 +122,12 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

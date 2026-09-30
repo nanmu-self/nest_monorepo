@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 
 import { router } from '@/router';
 import { auth } from '@/lib/auth';
+import { ThemeProvider } from '@/context/theme-provider';
 import './index.css';
 
 // 会话失效（401 等）统一跳登录页：保留当前路径作为 from，登录后可回跳。
@@ -16,6 +17,9 @@ auth.onUnauthorized(() => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    {/* ThemeProvider 必须在 RouterProvider 之外：路由懒加载的 chunk 也要能读到主题上下文 */}
+    <ThemeProvider>
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </StrictMode>,
 );

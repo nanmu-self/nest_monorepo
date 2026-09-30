@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { auth } from '@/lib/auth';
+import { ThemeSwitch } from '@/components/theme-switch';
 
 /** 导航项集中声明：侧栏渲染与顶栏标题共用同一份数据源 */
 const NAV_ITEMS = [
@@ -85,10 +86,13 @@ export default function AppLayout() {
             </button>
             <div className="app-header-title">{currentNav?.label ?? ''}</div>
           </div>
-          <button type="button" className="btn-logout" onClick={handleLogout}>
-            <LogOut size={15} />
-            退出登录
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeSwitch />
+            <button type="button" className="btn-logout" onClick={handleLogout}>
+              <LogOut size={15} />
+              退出登录
+            </button>
+          </div>
         </header>
         <main className="app-main">
           <Outlet />
