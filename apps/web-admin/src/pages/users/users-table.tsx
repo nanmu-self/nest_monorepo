@@ -10,7 +10,7 @@ import { Inbox, TriangleAlert } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/ui';
 
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table';
-import { usersColumns } from './columns';
+import { USERS_COLUMN_LABELS, usersColumns } from './columns';
 import type { UsersListQuery } from './use-users-list';
 
 type UsersTableProps = UsersListQuery;
@@ -76,6 +76,7 @@ export function UsersTable({
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="按邮箱搜索…"
+        columnLabels={USERS_COLUMN_LABELS}
         resetText="重置"
       />
 

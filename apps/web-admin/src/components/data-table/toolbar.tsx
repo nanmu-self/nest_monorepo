@@ -25,6 +25,8 @@ type DataTableToolbarProps<TData> = {
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   filters?: FacetedFilterConfig[];
+  /** 列 id -> 显示名，透传给列显隐菜单 */
+  columnLabels: Record<string, string>;
   /** 重置按钮的文案 */
   resetText?: string;
 };
@@ -44,6 +46,7 @@ export function DataTableToolbar<TData>({
   onSearchChange,
   searchPlaceholder = '筛选…',
   filters = [],
+  columnLabels,
   resetText = '重置',
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0 || Boolean(searchValue);
@@ -87,7 +90,7 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
-      <DataTableViewOptions table={table} />
+      <DataTableViewOptions table={table} labels={columnLabels} />
     </div>
   );
 }

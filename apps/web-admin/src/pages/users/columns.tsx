@@ -6,6 +6,21 @@ import { DataTableColumnHeader } from '@/components/data-table';
 import { LongText } from '@/components/long-text';
 
 /**
+ * 列 id -> 中文列名。
+ *
+ * 单一真理源：表头（DataTableColumnHeader）和列显隐菜单
+ * （DataTableViewOptions）都从这里取，避免两处文案不一致。
+ * 也不直接用 column.id 做标签 —— 那会把 `created_at` 这类内部字段名暴露给用户。
+ */
+export const USERS_COLUMN_LABELS: Record<string, string> = {
+  id: 'ID',
+  email: '邮箱',
+  created_at: '注册时间',
+  updated_at: '最后更新',
+  source: '来源',
+};
+
+/**
  * 用户列表的列定义。
  *
  * 服务端分页下，排序/筛选都交给后端，所以这里的 `header` 只负责渲染控件，
