@@ -92,7 +92,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="username"
-                placeholder="name@example.com"
+                placeholder="请输入注册邮箱"
                 value={email}
                 aria-invalid={errors.email ? true : undefined}
                 onChange={(e) => setEmail(e.target.value)}

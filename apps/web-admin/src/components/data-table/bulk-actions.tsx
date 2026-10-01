@@ -12,14 +12,15 @@ type DataTableBulkActionsProps<TData> = {
 };
 
 /**
- * A modular toolbar for displaying bulk actions when table rows are selected.
+ * 选中行时从底部浮起的批量操作条。
  *
- * @template TData The type of data in the table.
- * @param {object} props The component props.
- * @param {Table<TData>} props.table The react-table instance.
- * @param {string} props.entityName The name of the entity being acted upon (e.g., "task", "user").
- * @param {React.ReactNode} props.children The action buttons to be rendered inside the toolbar.
- * @returns {React.ReactNode | null} The rendered component or null if no rows are selected.
+ * 无选中行时返回 null，所以调用方可以直接把它写进页面，不用在外面套条件判断。
+ *
+ * 无障碍要点（这几部分手写很容易漏）：
+ * - 方向键 / Home / End 在按钮之间移动焦点；
+ * - Esc 清除选中——但要排除「焦点在 Radix 浮层里」的情况，
+ *   否则用户想关下拉菜单却会先把选中清空；
+ * - aria-live 区域播报选中数量，屏幕阅读器用户才知道刚才的操作生效了。
  */
 export function DataTableBulkActions<TData>({
   table,
@@ -31,20 +32,19 @@ export function DataTableBulkActions<TData>({
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState('');
 
-  // Announce selection changes to screen readers
+  // 向屏幕阅读器播报选中变化
   useEffect(() => {
-    if (selectedCount > 0) {
-      const message = `${selectedCount} ${entityName}${selectedCount > 1 ? 's' : ''} selected. 批量操作栏已可用。`;
+    if (selectedCount === 0) return;
 
-      // Use queueMicrotask to defer state update and avoid cascading renders
-      queueMicrotask(() => {
-        setAnnouncement(message);
-      });
+    // queueMicrotask：把状态更新推到当前任务之后，
+    // 避免在 TanStack Table 的渲染过程中同步 setState 引发级联渲染
+    queueMicrotask(() => {
+      setAnnouncement(`已选中 ${selectedCount} 个${entityName}，批量操作栏已可用。`);
+    });
 
-      // Clear announcement after a delay
-      const timer = setTimeout(() => setAnnouncement(''), 3000);
-      return () => clearTimeout(timer);
-    }
+    // 3 秒后清空，避免重复播报同一条消息
+    const timer = setTimeout(() => setAnnouncement(''), 3000);
+    return () => clearTimeout(timer);
   }, [selectedCount, entityName]);
 
   const handleClearSelection = () => {
@@ -81,29 +81,29 @@ export function DataTableBulkActions<TData>({
         buttons[buttons.length - 1]?.focus();
         break;
       case 'Escape': {
-        // Check if the Escape key came from a dropdown trigger or content
-        // We can't check dropdown state because Radix UI closes it before our handler runs
+        // Radix UI 会在我们的事件处理之前先关掉浮层，所以拿不到 dropdown 的
+        // open 状态，只能靠 DOM 位置判断事件是不是发生在浮层里
         const target = event.target as HTMLElement;
         const activeElement = document.activeElement as HTMLElement;
 
-        // Check if the event target or currently focused element is a dropdown trigger
+        // 事件源或当前焦点在 dropdown 触发器上
         const isFromDropdownTrigger =
           target?.getAttribute('data-slot') === 'dropdown-menu-trigger' ||
           activeElement?.getAttribute('data-slot') === 'dropdown-menu-trigger' ||
           target?.closest('[data-slot="dropdown-menu-trigger"]') ||
           activeElement?.closest('[data-slot="dropdown-menu-trigger"]');
 
-        // Check if the focused element is inside dropdown content (which is portaled)
+        // 焦点在 dropdown 内容里（通过 portal 渲染，不在触发器的 DOM 子树内）
         const isFromDropdownContent =
           activeElement?.closest('[data-slot="dropdown-menu-content"]') ||
           target?.closest('[data-slot="dropdown-menu-content"]');
 
+        // Esc 是想关下拉菜单 —— 不要动选中状态
         if (isFromDropdownTrigger || isFromDropdownContent) {
-          // Escape was meant for the dropdown - don't clear selection
           return;
         }
 
-        // Escape was meant for the toolbar - clear selection
+        // Esc 确实是给批量操作栏的 —— 清除选中
         event.preventDefault();
         handleClearSelection();
         break;
@@ -172,11 +172,7 @@ export function DataTableBulkActions<TData>({
             >
               {selectedCount}
             </Badge>{' '}
-            <span className="hidden sm:inline">
-              {entityName}
-              {selectedCount > 1 ? 's' : ''}
-            </span>{' '}
-            selected
+            <span className="hidden sm:inline">已选中{entityName}</span>
           </div>
 
           <Separator className="h-5" orientation="vertical" aria-hidden="true" />

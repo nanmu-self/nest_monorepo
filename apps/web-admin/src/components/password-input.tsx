@@ -7,6 +7,15 @@ type PasswordInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'typ
   ref?: React.Ref<HTMLInputElement>;
 };
 
+/**
+ * 带「显示 / 隐藏」切换的密码输入框。
+ *
+ * 切换按钮不占布局空间：绝对定位贴在输入框右侧，
+ * 因此这个组件的 className 给的是外层容器而不是 input 本身。
+ *
+ * 按钮图标只带 aria-label、不带可见文字，屏幕阅读器会读作
+ * 「显示密码 / 隐藏密码」而不是「按钮」。
+ */
 export function PasswordInput({ className, disabled, ref, ...props }: PasswordInputProps) {
   const [showPassword, setShowPassword] = React.useState(false);
 

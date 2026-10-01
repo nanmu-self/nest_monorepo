@@ -117,6 +117,9 @@ Both packages are CSS-first — `tsup` bundles the JS entry and `onSuccess` copi
 
 ## Code style
 
+- **界面文案一律中文**：面向用户的字符串（页面标题、按钮、占位符、错误提示、`aria-label` / `sr-only`、空状态文案、API `message` 兜底）全部用中文；注释和文档同理。唯一例外是**协议/标识类**的字面量——接口封套的 `message: 'ok'`、`error.name`、技术术语引用（代码示例里的 `import`/`from`）保持原样，改了反而对不上。
+  - **注意英文复数后缀**：中文没有复数，不要跟上游实现一样拼 `{n > 1 ? 's' : ''}`。
+  - 用户可见文案优先在**源头**改（服务端 `message` / `@app/ui` 组件默认值），而不是在各个前端调用点打补丁。
 - oxlint config (`.oxlintrc.json`) enforces the `correctness` category as errors, plus `eqeqeq`, `no-var`, `prefer-const`, `no-unused-private-class-members`; `no-console` is a warning. `apps/web-admin/**` additionally enables the `react` plugin with `rules-of-hooks` and `only-export-components`.
 - Prettier is the source of truth for formatting; run `pnpm format` before committing.
 - Comments and docstrings in the existing code are written in Chinese - match that when editing nearby code.

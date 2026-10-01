@@ -65,9 +65,9 @@ export class AllExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const response = ctx.getResponse<Response>();
 
-    // 默认 500 错误
+    // 默认 500 错误（生产环境脱敏后仍用这个文案）
     let httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal Server Error';
+    let message = '服务器内部错误';
     let details: unknown = undefined;
     // 业务码：BizException 时设置（>= 10000），否则响应体 code 取 httpStatus
     let bizCode: number | undefined;
@@ -121,17 +121,18 @@ export class AllExceptionFilter implements ExceptionFilter {
       switch (exception.code) {
         case 'P2002': // 唯一约束冲突
           httpStatus = HttpStatus.CONFLICT;
-          message = 'Unique constraint violation';
+          // 这条会透出到界面（409 不走前端的状态码兜底分支，直接用 message）
+          message = '数据已存在，请勿重复提交';
           details = {
             fields: exception.meta?.target,
           };
           break;
         case 'P2025': // 记录未找到
           httpStatus = HttpStatus.NOT_FOUND;
-          message = 'Record not found';
+          message = '记录不存在或已被删除';
           break;
         default:
-          message = 'Database error';
+          message = '数据库操作失败';
           // 未识别的 Prisma 码会落到 500，保留堆栈用于定位
           stack = exception instanceof Error ? exception.stack : undefined;
       }
@@ -154,7 +155,7 @@ export class AllExceptionFilter implements ExceptionFilter {
 
     // 生产环境隐藏 500 错误的详细信息
     if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR && IS_PRODUCTION) {
-      message = 'Internal Server Error';
+      message = '服务器内部错误';
       details = undefined;
     }
 

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { auth } from '@/lib/auth';
+import { SkipToMain } from '@/components/skip-to-main';
 import { ThemeSwitch } from '@/components/theme-switch';
 
 /** 导航项集中声明：侧栏渲染与顶栏标题共用同一份数据源 */
@@ -49,6 +50,8 @@ export default function AppLayout() {
 
   return (
     <div className="app-shell" data-collapsed={collapsed}>
+      {/* 键盘用户第一个 Tab 就能跳过整个导航区 */}
+      <SkipToMain />
       <aside className="app-sidebar">
         <div className="app-brand">
           <span className="app-brand-mark">A</span>
@@ -69,7 +72,7 @@ export default function AppLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="app-sidebar-footer">Admin Console</div>
+        <div className="app-sidebar-footer">管理控制台</div>
       </aside>
 
       <div className="app-body">
@@ -94,7 +97,7 @@ export default function AppLayout() {
             </button>
           </div>
         </header>
-        <main className="app-main">
+        <main id="main" className="app-main" tabIndex={-1}>
           <Outlet />
         </main>
       </div>

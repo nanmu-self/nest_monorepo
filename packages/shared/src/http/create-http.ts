@@ -140,7 +140,7 @@ export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
           if (body.code === 0) {
             return body.data;
           }
-          const message = body.message || 'Business Error';
+          const message = body.message || '业务处理失败';
           const error = new HttpError(response.status, message, body, extractBizCode(body));
           options.onError?.(error);
           throw error;
@@ -152,7 +152,7 @@ export function createHttp<SE extends StatesExport<any> = StatesExport<any>>(
 
       onError(error) {
         // 网络错误（fetch 本身失败，如断网、DNS 解析失败等）
-        const httpError = new HttpError(0, error.message ?? 'Network Error');
+        const httpError = new HttpError(0, error.message ?? '网络连接失败');
         options.onError?.(httpError);
         throw httpError;
       },

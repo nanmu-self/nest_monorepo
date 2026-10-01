@@ -8,6 +8,12 @@ type LearnMoreProps = React.ComponentProps<typeof Popover> & {
   triggerProps?: React.ComponentProps<typeof PopoverTrigger>;
 };
 
+/**
+ * 表单字段旁的「了解更多」气泡。
+ *
+ * 位置默认在上方（side="top"）：字段旁一般下方没有空间。
+ * 触发器是可聚焦的 icon 按钮，键盘用户也能展开。
+ */
 export function LearnMore({ children, contentProps, triggerProps, ...props }: LearnMoreProps) {
   return (
     <Popover {...props}>
