@@ -34,8 +34,10 @@
   }
 
   /* 按钮统一走 @app/ui 的 Button 组件（variant: default/secondary，胶囊形）。
-     旧的 .btn-primary / .btn-ghost 快捷类已删除——不要再新建同类快捷类，
-     否则会与共享包 Button 形成双真理源。*/
+     base 层 button 是无外观 reset（见下），不要再往 base 层加按钮皮肤
+     （背景/文字色/圆角/内边距）——会从 shadcn outline/ghost variant 的
+     继承口子灌进去，导致按钮文字看不清。也不要新建 .btn-primary 同类快捷类，
+     会与共享包 Button 形成双真理源。*/
 
   /* Apple 式卡片：无硬边框，柔和投影分层。
      背景走 --card（来自 @app/ui），而不是写死 bg-white，
@@ -54,12 +56,11 @@
       0 2px 12px rgba(0, 0, 0, 0.4);
   }
 
-  /* 图标按钮基类：覆盖 base 层 button 的 padding/background/color，
-     让 32×32 的纯图标按钮不被撑大、不继承黑底白字。
-     放在 components 层确保优先级高于 base 层的裸 button 选择器。
+  /* 图标按钮基类：32×32 的纯图标按钮统一用它（透明底 + 次级文本色 +
+     overlay hover 反馈），危险操作（删除等）追加 .icon-btn-danger。
      用法：className="icon-btn shrink-0 flex-center w-8 h-8 rounded-full transition-colors"
-     危险操作（删除等）追加 .icon-btn-danger。
-     详见 CLAUDE.md「全局 button 样式陷阱」。 */
+     注意：裸 <button> 在 base 层只有无外观 reset，图标按钮必须挂本类，
+     否则没有 hover 反馈与文字颜色。 */
   .icon-btn {
     padding: 0;
     background: transparent;
@@ -182,24 +183,21 @@
     color: var(--action-hover);
   }
 
+  /* ---------- 全局 button：只做「无外观」reset，禁止上皮肤 ----------
+     历史上这里给所有裸 button 写过「深底白字胶囊」皮肤，结果 shadcn Button 的
+     outline / ghost variant 静态态刻意不声明背景或文字色、靠继承工作，
+     皮肤就从继承口子灌了进去：outline 白字白底整颗隐身、ghost 图标按钮变成
+     黑胶囊 —— 即 AGENTS.md 记录的「全局 button 样式陷阱」事故根源。
+     按钮外观归各自的 class（.btn-logout / .icon-btn 等）或 @app/ui 的
+     Button variant，不要再挪回这里。 */
   button {
     font: inherit;
     cursor: pointer;
-    background: transparent;
-    border-radius: 980px;
-    padding: 10px 22px;
-    background: var(--action);
-    color: var(--primary-foreground);
-    font-size: 15px;
-    font-weight: 500;
-    /* 显式列出属性：hover 走 ease，按压 transform 走 out-strong */
+    /* 显式列出属性：hover 颜色走 ease，按压 transform 走 out-strong */
     transition:
       background-color var(--duration-press) ease,
       color var(--duration-press) ease,
       transform var(--duration-press) var(--ease-out-strong);
-  }
-  button:hover {
-    background: var(--action-hover);
   }
   /* 按压反馈：任何可按压元素都必须告诉用户“我听到了”。
      :not(:disabled) 避免禁用按钮被按下时也缩小（disabled 本身就告诉用户"现在不能按"） */
@@ -207,11 +205,6 @@
     transform: scale(0.97);
   }
   button:disabled {
-    /* shadcn 风格：直接换成中性灰，避开"半透明主题色"出脏色的问题。
-       用 secondary token（slate-100）做底，深灰字，保持视觉统一。 */
-    background: var(--secondary);
-    color: var(--muted-foreground);
-    opacity: 1;
     cursor: not-allowed;
   }
 }
@@ -398,6 +391,8 @@
     color: var(--text);
     font-size: 14px;
     padding: 7px 14px;
+    /* 胶囊形原先继承自 base 层 button，皮肤下放后在此声明 */
+    border-radius: 980px;
   }
   .btn-logout:hover {
     background: var(--overlay-2);

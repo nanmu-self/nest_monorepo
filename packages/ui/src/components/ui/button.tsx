@@ -5,8 +5,11 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
 // 胶囊形（rounded-full）是本 monorepo 的按钮设计语言：
-// 与消费方 base 层原生 button 的 980px 圆角、apple-card 的圆角体系一致。
+// 与消费方布局壳层按钮 class（.btn-logout 等，980px 圆角）、apple-card 的圆角体系一致。
 // size 变体不再各自声明 rounded-md，统一继承此处的胶囊形。
+// 注意：消费方 base 层 button 是无外观 reset，本组件 variant 的
+// outline/ghost/link 静态态不声明背景与文字色、靠继承正文色工作——
+// 不要在消费方 base 层给裸 button 加皮肤，否则会从这些口子灌进来。
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
